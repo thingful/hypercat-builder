@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # for mor einfo about how to use python to parse xml docs see https://docs.python.org/2/library/xml.etree.elementtree.html
 
 import hypercat_lib.hypercat_py.hypercat as hypercat
@@ -17,21 +18,24 @@ def build_hcitem(xmlNode):
 	"""loops through a single xml node and generates a hypercat item"""
 
 	# instantiate new item
-	r = hypercat.Resource("DESCRIPTON GOES HERE",  "application/json")
+	r = hypercat.Resource("DESCRIPTON GOES HERE",  "application/vnd.hypercat.catalogue+json")
 
 	for n in xmlNode:	 # loop through second level nodes		
+		if 'name' in n.attrib:
+			if n.attrib['name'] == 'ID': # get id
+				r.addItemMetadata("urn:X-{:s}:rels:hasId".format(PROVIDER_NAME), n.text)
 
-		if n.attrib['name'] == 'ID': # get id
-			r.addItemMetadata("urn:X-{:s}:rels:hasId".format(PROVIDER_NAME), n.text)
+			if n.attrib['name'] == 'post_title': # get name
+				r.addItemMetadata("urn:X-{:s}:rels:hasTitle".format(PROVIDER_NAME), n.text)
 
-		if n.attrib['name'] == 'post_title': # get name
-			r.addItemMetadata("urn:X-{:s}:rels:hasTitle".format(PROVIDER_NAME), n.text)
+			if n.attrib['name'] == 'post_content': # get content
+				r.addItemMetadata("urn:X-{:s}:rels:hasContent".format(PROVIDER_NAME), n.text)
 
-		if n.attrib['name'] == 'post_content': # get content
-			r.addItemMetadata("urn:X-{:s}:rels:hasContent".format(PROVIDER_NAME), n.text)
+			if n.attrib['name'] == 'post_date': # get content
+				r.addItemMetadata("urn:X-{:s}:rels:createdAt".format(PROVIDER_NAME), n.text)
 
-		if n.attrib['name'] == 'post_date': # get content
-			r.addItemMetadata("urn:X-{:s}:rels:createdAt".format(PROVIDER_NAME), n.text)
+		if n.tag == 'person':
+			r.addItemMetadata("urn:X-{:s}:rels:person".format(PROVIDER_NAME), n.find('name').text)
 
 	return r
 

@@ -1,17 +1,19 @@
-# for mor einfo about how to use python to parse xml docs see https://docs.python.org/2/library/xml.etree.elementtree.html
-
+# -*- coding: utf-8 -*-
+# for mor einfo about how to use python to parse json docs see https://docs.python.org/2/library/json.html
 import hypercat_lib.hypercat_py.hypercat as hypercat
 import json
 import os
 import errno
 
-PROVIDER_NAME = "PROVIDER_NAME"
+PROVIDER_NAME = "transportapi"
 
 DBDUMP_PATH = 'data/db-dump.json'
 
 def build_hcitem(jsonObj):
 	# instantiate new item
-	r = hypercat.Resource("DESCRIPTON GOES HERE",  "application/json")
+	r = hypercat.Resource("DESCRIPTON GOES HERE",  "application/vnd.hypercat.catalogue+json")
+
+	r.addItemMetadata("urn:X-hypercat:rels:isContentType", "applications/json")
 
 	r.addItemMetadata("urn:X-{:s}:rels:hasId".format(PROVIDER_NAME), jsonObj['ID']) # get id
 
@@ -20,6 +22,10 @@ def build_hcitem(jsonObj):
 	r.addItemMetadata("urn:X-{:s}:rels:hasContent".format(PROVIDER_NAME), jsonObj['post_content']) # get content
 
 	r.addItemMetadata("urn:X-{:s}:rels:createdAt".format(PROVIDER_NAME), jsonObj['post_date']) # get date
+
+	if 'person' in jsonObj:
+		if 'name' in jsonObj['person']:
+			r.addItemMetadata("urn:X-{:s}:rels:name".format(PROVIDER_NAME), jsonObj['person']['name']) # get nested val
 
 	return r
 
