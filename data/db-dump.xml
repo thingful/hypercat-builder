@@ -75,6 +75,7 @@
             <column name="post_type">post</column>
             <column name="post_mime_type"></column>
             <column name="comment_count">1</column>
+            <person><name>Alfio</name></person>
         </table>
         <table name="wp_posts">
             <column name="ID">2</column>
