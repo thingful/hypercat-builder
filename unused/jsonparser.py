@@ -11,7 +11,7 @@ DBDUMP_PATH = 'data/db-dump.json'
 
 def build_hcitem(jsonObj):
 	# instantiate new item
-	r = hypercat.Resource("DESCRIPTON GOES HERE",  "application/vnd.hypercat.catalogue+json")
+	r = hypercat.Resource("DESCRIPTON GOES HERE",  "application/json")
 
 	r.addItemMetadata("urn:X-hypercat:rels:isContentType", "applications/json")
 

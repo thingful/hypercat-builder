@@ -8,7 +8,7 @@ import errno
 
 PROVIDER_NAME = "transportapi"
 
-DBDUMP_PATH = 'data/atcocodes-everything.csv'
+DBDUMP_PATH = 'data/atcocodes-tram.csv'
 
 # generate rel val pairs 
 # use string <node.tag> to access a node by name
@@ -18,7 +18,7 @@ def build_hcitem(csvRow):
 	"""loops through a single xml node and generates a hypercat item"""
 
 	# instantiate new item
-	r = hypercat.Resource("{:s} station: LiveData".format(csvRow[7]),  "application/json")
+	r = hypercat.Resource("tram stop {:s}: timetable".format(csvRow[7]),  "application/json")
 
 	# ATCO
 	r.addItemMetadata("urn:X-{:s}:rels:hasATCOCode".format(PROVIDER_NAME), csvRow[1])
@@ -36,10 +36,10 @@ def build_hcitem(csvRow):
 	r.addItemMetadata("http://www.w3.org/2003/01/geo/wgs84_pos#long", csvRow[9])
 
 	# type
-	r.addItemMetadata("urn:X-{:s}:rels:isNodeType".format(PROVIDER_NAME), "train_station")
+	r.addItemMetadata("urn:X-{:s}:rels:isNodeType".format(PROVIDER_NAME), "tram stop")
 
-	# currency
-	r.addItemMetadata("urn:X-{:s}:rels:hasDataCurrency".format(PROVIDER_NAME), "live")
+	# type
+	r.addItemMetadata("urn:X-{:s}:rels:hasDataCurrency".format(PROVIDER_NAME), "timetable")
 
 	return r
 
@@ -49,7 +49,7 @@ def parse_csv():
 	"""loops trough the xml document and returns a hypercat catalogue"""
 
 	# create new hypercat catalogue
-	h = hypercat.Hypercat("{:s} Catalogue".format(PROVIDER_NAME))
+	h = hypercat.Hypercat("{:s} tram stops catalogue".format(PROVIDER_NAME))
 
 	# load csv file
 	with open(DBDUMP_PATH, 'rb') as csvfile:
@@ -59,7 +59,7 @@ def parse_csv():
 				continue
 
 			r = build_hcitem(row)
-			h.addItem(r, 'http://fcc.transportapi.com/v3/uk/bus/stop/{:s}/live.json'.format(row[1]))
+			h.addItem(r, 'http://fcc.transportapi.com/v3/uk/tram/stop/{:s}/timetable.json'.format(row[1]))
 
 	return h # the actual XML hypercat catalogue
 
@@ -70,7 +70,7 @@ def generate_hypercat_file():
 
 	output_content = h.prettyprint() 
 
-	file_name = 'output/stations.json' # the file name
+	file_name = 'output/tram-timetable.json' # the file name
 	
 	# save output to file
 	if not os.path.exists(os.path.dirname(file_name)):

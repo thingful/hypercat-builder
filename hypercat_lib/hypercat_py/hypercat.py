@@ -84,7 +84,7 @@ ITEM_METADATA = "i-object-metadata" # Name of the array of metadata about each i
 
 # Mandatory relations & types
 ISCONTENTTYPE_RELATION = "urn:X-hypercat:rels:isContentType"  # Mandatory for catalogues, but not resources
-CATALOGUE_TYPE = "application/vnd.tsbiot.catalogue+json"
+CATALOGUE_TYPE = "application/vnd.hypercat.catalogue+json"
 DESCRIPTION_RELATION = "urn:X-hypercat:rels:hasDescription:en"
 
 # Optional relations & types

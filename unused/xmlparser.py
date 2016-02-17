@@ -2,75 +2,70 @@
 # for mor einfo about how to use python to parse xml docs see https://docs.python.org/2/library/xml.etree.elementtree.html
 
 import hypercat_lib.hypercat_py.hypercat as hypercat
-import csv
+import xml.etree.ElementTree as ET
 import os
 import errno
 
-PROVIDER_NAME = "transportapi"
+PROVIDER_NAME = "PROVIDER_NAME"
 
-DBDUMP_PATH = 'data/atcocodes-everything.csv'
+DBDUMP_PATH = 'data/db-dump.xml'
 
 # generate rel val pairs 
 # use string <node.tag> to access a node by name
 # use dict <node.attrib[attribute-name]> to access a node by attribute
 # use <node.text> to get the node value
-def build_hcitem(csvRow):
+def build_hcitem(xmlNode):
 	"""loops through a single xml node and generates a hypercat item"""
 
 	# instantiate new item
-	r = hypercat.Resource("{:s} station: LiveData".format(csvRow[7]),  "application/json")
+	r = hypercat.Resource("DESCRIPTON GOES HERE",  "application/json")
 
-	# ATCO
-	r.addItemMetadata("urn:X-{:s}:rels:hasATCOCode".format(PROVIDER_NAME), csvRow[1])
+	for n in xmlNode:	 # loop through second level nodes		
+		if 'name' in n.attrib:
+			if n.attrib['name'] == 'ID': # get id
+				r.addItemMetadata("urn:X-{:s}:rels:hasId".format(PROVIDER_NAME), n.text)
 
-	# name
-	r.addItemMetadata("urn:X-{:s}:rels:hasName".format(PROVIDER_NAME), csvRow[7])
+			if n.attrib['name'] == 'post_title': # get name
+				r.addItemMetadata("urn:X-{:s}:rels:hasTitle".format(PROVIDER_NAME), n.text)
 
-	# created at
-	r.addItemMetadata("urn:X-{:s}:rels:hasCreatedAt".format(PROVIDER_NAME), csvRow[6])
+			if n.attrib['name'] == 'post_content': # get content
+				r.addItemMetadata("urn:X-{:s}:rels:hasContent".format(PROVIDER_NAME), n.text)
 
-	# lat
-	r.addItemMetadata("http://www.w3.org/2003/01/geo/wgs84_pos#lat", csvRow[8])
+			if n.attrib['name'] == 'post_date': # get content
+				r.addItemMetadata("urn:X-{:s}:rels:createdAt".format(PROVIDER_NAME), n.text)
 
-	# lon
-	r.addItemMetadata("http://www.w3.org/2003/01/geo/wgs84_pos#long", csvRow[9])
-
-	# type
-	r.addItemMetadata("urn:X-{:s}:rels:isNodeType".format(PROVIDER_NAME), "train_station")
-
-	# currency
-	r.addItemMetadata("urn:X-{:s}:rels:hasDataCurrency".format(PROVIDER_NAME), "live")
+		if n.tag == 'person':
+			r.addItemMetadata("urn:X-{:s}:rels:person".format(PROVIDER_NAME), n.find('name').text)
 
 	return r
 
 # parse xml and build hypercat catalogue
 # use <iter('node_name')> to extract loop over top level nodes 
-def parse_csv():
+def parse_xml():
 	"""loops trough the xml document and returns a hypercat catalogue"""
+	# load xml file
+	doc = ET.parse(DBDUMP_PATH)
+
+	# get xml root
+	root = doc.getroot()
 
 	# create new hypercat catalogue
 	h = hypercat.Hypercat("{:s} Catalogue".format(PROVIDER_NAME))
 
-	# load csv file
-	with open(DBDUMP_PATH, 'rb') as csvfile:
-		dbreader = csv.reader(csvfile, delimiter=';', quotechar='"')
-		for i, row in enumerate(dbreader):
-			if i == 0 :
-				continue
-
-			r = build_hcitem(row)
-			h.addItem(r, 'http://fcc.transportapi.com/v3/uk/bus/stop/{:s}/live.json'.format(row[1]))
+	for i, node in enumerate(root.iter('table')): # loop through top level nodes
+		r = build_hcitem(node)
+		h.addItem(r, 'http://resource-{:d}'.format(i))
 
 	return h # the actual XML hypercat catalogue
 
 def generate_hypercat_file():
 	"""builds a hypercat catalogue a saves it to a file"""
 
-	h = parse_csv()
+	h = parse_xml()
 
 	output_content = h.prettyprint() 
 
-	file_name = 'output/stations.json' # the file name
+	file_name = 'output/hypercat-lib.json' # the file name
 	
 	# save output to file
 	if not os.path.exists(os.path.dirname(file_name)):

@@ -8,7 +8,7 @@ import errno
 
 PROVIDER_NAME = "transportapi"
 
-DBDUMP_PATH = 'data/atcocodes-everything.csv'
+DBDUMP_PATH = 'data/crs_codes-everything.csv'
 
 # generate rel val pairs 
 # use string <node.tag> to access a node by name
@@ -18,22 +18,25 @@ def build_hcitem(csvRow):
 	"""loops through a single xml node and generates a hypercat item"""
 
 	# instantiate new item
-	r = hypercat.Resource("{:s} station: LiveData".format(csvRow[7]),  "application/json")
-
-	# ATCO
-	r.addItemMetadata("urn:X-{:s}:rels:hasATCOCode".format(PROVIDER_NAME), csvRow[1])
-
-	# name
-	r.addItemMetadata("urn:X-{:s}:rels:hasName".format(PROVIDER_NAME), csvRow[7])
-
-	# created at
-	r.addItemMetadata("urn:X-{:s}:rels:hasCreatedAt".format(PROVIDER_NAME), csvRow[6])
+	r = hypercat.Resource("{:s} station: live data".format(csvRow[3]),  "application/json")
 
 	# lat
-	r.addItemMetadata("http://www.w3.org/2003/01/geo/wgs84_pos#lat", csvRow[8])
+	r.addItemMetadata("http://www.w3.org/2003/01/geo/wgs84_pos#lat", csvRow[7])
 
 	# lon
-	r.addItemMetadata("http://www.w3.org/2003/01/geo/wgs84_pos#long", csvRow[9])
+	r.addItemMetadata("http://www.w3.org/2003/01/geo/wgs84_pos#long", csvRow[8])
+
+	# CRS
+	r.addItemMetadata("urn:X-{:s}:rels:hasCRSCode".format(PROVIDER_NAME), csvRow[5])
+
+	# tiploc
+	r.addItemMetadata("urn:X-{:s}:rels:hasTiplocCode".format(PROVIDER_NAME), csvRow[1])
+
+	# name
+	r.addItemMetadata("urn:X-{:s}:rels:hasName".format(PROVIDER_NAME), csvRow[3])
+
+	# created at
+	r.addItemMetadata("urn:X-{:s}:rels:hasCreatedAt".format(PROVIDER_NAME), csvRow[14])
 
 	# type
 	r.addItemMetadata("urn:X-{:s}:rels:isNodeType".format(PROVIDER_NAME), "train_station")
@@ -49,7 +52,7 @@ def parse_csv():
 	"""loops trough the xml document and returns a hypercat catalogue"""
 
 	# create new hypercat catalogue
-	h = hypercat.Hypercat("{:s} Catalogue".format(PROVIDER_NAME))
+	h = hypercat.Hypercat("{:s} stations catalogue".format(PROVIDER_NAME))
 
 	# load csv file
 	with open(DBDUMP_PATH, 'rb') as csvfile:
@@ -59,7 +62,7 @@ def parse_csv():
 				continue
 
 			r = build_hcitem(row)
-			h.addItem(r, 'http://fcc.transportapi.com/v3/uk/bus/stop/{:s}/live.json'.format(row[1]))
+			h.addItem(r, 'http://fcc.transportapi.com/v3/uk/train/station/{:s}/live.json'.format(row[5]))
 
 	return h # the actual XML hypercat catalogue
 
@@ -70,7 +73,7 @@ def generate_hypercat_file():
 
 	output_content = h.prettyprint() 
 
-	file_name = 'output/stations.json' # the file name
+	file_name = 'output/stations-live.json' # the file name
 	
 	# save output to file
 	if not os.path.exists(os.path.dirname(file_name)):
