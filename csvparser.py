@@ -27,14 +27,14 @@ def build_hcitem(csvRow):
 # parse xml and build hypercat catalogue
 # use <iter('node_name')> to extract loop over top level nodes 
 def parse_csv():
-	"""loops trough the xml document and returns a hypercat catalogue"""
+	"""loops trough the csv document and returns a hypercat catalogue"""
 
 	# create new hypercat catalogue
 	h = hypercat.Hypercat("{:s} Catalogue".format(PROVIDER_NAME))
 
 	# load csv file
 	with open(DBDUMP_PATH, 'rb') as csvfile:
-		dbreader = csv.reader(csvfile, delimiter=',', quotechar='|')
+		dbreader = csv.reader(csvfile, delimiter=',', quotechar='"')
 		for i, row in enumerate(dbreader):
 			r = build_hcitem(row)
 			h.addItem(r, 'http://resource-{:d}'.format(i))
