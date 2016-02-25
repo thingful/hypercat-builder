@@ -62,7 +62,7 @@ def parse_csv():
 				r = build_hcitem(row)
 				h.addItem(r, 'http://fcc.transportapi.com/v3/uk/bus/stop/{:s}/timetable.json'.format(row[1]))
 
-	return h # the actual XML hypercat catalogue
+	return h # the actual csv hypercat catalogue
 
 def generate_hypercat_file():
 	"""builds a hypercat catalogue a saves it to a file"""
