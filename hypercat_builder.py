@@ -33,15 +33,17 @@ this flag generates links to the main TransportAPI website.
 ----------------------------------------------------------------
 
 Usage:
-  hypercat_builder.py run [--input=<path>] [--output=<directory>] [--fcc]
+  hypercat_builder.py [--input=<path>] [--output=<directory>] [--fcc]
   hypercat_builder.py -h | --help
   hypercat_builder.py --version
 
 Options:
   -h, --help                Show this screen.
   --version                 Show version.
-  --input=<path>        		Folder containing the input CSV files for processing. It can be a folder or an individual file.
+  --input=<path>            Folder containing the input CSV files for processing.
+                            It can be a folder or an individual file [default: all].
   --output=<directory>      Directory the output JSON should be written to
+                            [default: ./output].
   --fcc                     Future City Catapult flag.
 
 """
@@ -330,31 +332,17 @@ class HypercatBuilder():
 def main(arguments):
 	"""checks if any of the default arguments have been over-written
 	   and starts the catalogue(s) building process"""
-	
-	# deafult args
-	input_file = 'all'
-	output_dir = 'output/'
-	base_url = 'http://transportapi.com'
-
-	if arguments['--input']:
-		input_file = arguments['--input']
-
-	if arguments['--output']:
-		output_dir = arguments['--output']
 
 	if arguments['--fcc']:
 		base_url = 'http://fcc.transportapi.com'
+	else:
+		base_url = 'http://transportapi.com'
 
-	hyperct = HypercatBuilder(input_file, output_dir, base_url)
-	hyperct.generate_hypercat_file()
+	hypercat = HypercatBuilder(arguments['--input'], arguments['--output'], base_url)
+	hypercat.generate_hypercat_file()
 
 if __name__ == '__main__':
 	arguments = docopt(__doc__, version='Hypercat Builder 1.0')
 
-	if arguments['run']:
-		main(arguments)
-	else:
-		print(arguments)
-	
-
-	
+	# we will never call this unless arguments parse successfully
+	main(arguments)
