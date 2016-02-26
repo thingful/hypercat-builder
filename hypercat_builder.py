@@ -40,14 +40,14 @@ Usage:
 Options:
   -h, --help                Show this screen.
   --version                 Show version.
-  --input=<path>        		Folder containing the input CSV files for processing. Can be a folder or an individual file
+  --input=<path>        		Folder containing the input CSV files for processing. It can be a folder or an individual file.
   --output=<directory>      Directory the output JSON should be written to
   --fcc                     Future City Catapult flag.
 
 """
 
-from docopt import docopt
-import hypercat_lib.hypercat_py.hypercat as hypercat
+from lib.docopt import docopt
+import lib.hypercat_lib.hypercat_py.hypercat as hypercat
 import csv
 import os
 import sys
@@ -59,7 +59,7 @@ PROVIDER_NAME = "TransportAPI"
 
 PROVIDER_WEBSITE = "http://www.transportapi.com/"
 
-MAX_CATALOGUE_LENGTH = 10000
+MAX_CATALOGUE_LENGTH = 3000
 
 DEFAULT_DATASETS = { 'atcocodes-ferry.csv'			: 'ferry', 
 										 'atcocodes-tram.csv'				: 'tram',
@@ -96,19 +96,19 @@ class HypercatBuilder():
 		r = hypercat.Resource('{:s}: {:s} Departures'.format(csvRow[7], data_currency.title()), 'application/json')
 
 		# ATCO
-		r.addItemMetadata('urn:X-{:s}:rels:hasATCOCode'.format(PROVIDER_NAME), csvRow[1])
+		r.addRelation('urn:X-{:s}:rels:hasATCOCode'.format(PROVIDER_NAME), csvRow[1])
 
 		# lat
-		r.addItemMetadata('http://www.w3.org/2003/01/geo/wgs84_pos#lat', str(lat) )
+		r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#lat', str(lat) )
 
 		# lon
-		r.addItemMetadata('http://www.w3.org/2003/01/geo/wgs84_pos#long', str(lon))
+		r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#long', str(lon))
 
 		# type
-		r.addItemMetadata('urn:X-{:s}:rels:isNodeType'.format(PROVIDER_NAME), node_type)
+		r.addRelation('urn:X-{:s}:rels:isNodeType'.format(PROVIDER_NAME), node_type)
 
 		# currency
-		r.addItemMetadata('urn:X-{:s}:rels:hasDataCurrency'.format(PROVIDER_NAME), data_currency)
+		r.addRelation('urn:X-{:s}:rels:hasDataCurrency'.format(PROVIDER_NAME), data_currency)
 
 		return r
 
@@ -120,22 +120,22 @@ class HypercatBuilder():
 		r = hypercat.Resource('{:s}: {:s} Departures'.format(csvRow[3], data_currency.title()),  'application/json')
 
 		# lat
-		r.addItemMetadata('http://www.w3.org/2003/01/geo/wgs84_pos#lat', csvRow[7])
+		r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#lat', csvRow[7])
 
 		# lon
-		r.addItemMetadata('http://www.w3.org/2003/01/geo/wgs84_pos#long', csvRow[8])
+		r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#long', csvRow[8])
 
 		# CRS
-		r.addItemMetadata('urn:X-{:s}:rels:hasCRSCode'.format(PROVIDER_NAME), csvRow[5])
+		r.addRelation('urn:X-{:s}:rels:hasCRSCode'.format(PROVIDER_NAME), csvRow[5])
 
 		# tiploc
-		r.addItemMetadata('urn:X-{:s}:rels:hasTiplocCode'.format(PROVIDER_NAME), csvRow[1])
+		r.addRelation('urn:X-{:s}:rels:hasTiplocCode'.format(PROVIDER_NAME), csvRow[1])
 
 		# type
-		r.addItemMetadata('urn:X-{:s}:rels:isNodeType'.format(PROVIDER_NAME), 'train_station')
+		r.addRelation('urn:X-{:s}:rels:isNodeType'.format(PROVIDER_NAME), 'train_station')
 
 		# currency
-		r.addItemMetadata('urn:X-{:s}:rels:hasDataCurrency'.format(PROVIDER_NAME), data_currency)
+		r.addRelation('urn:X-{:s}:rels:hasDataCurrency'.format(PROVIDER_NAME), data_currency)
 
 		return r
 
@@ -270,6 +270,8 @@ class HypercatBuilder():
 	def build_index(self):
 		# create a new hypercat catalogue
 		index = hypercat.Hypercat('{:s} - Index Catalogue'.format(PROVIDER_NAME))
+		index.addRelation('urn:X-hypercat:rels:hasHomePage', PROVIDER_WEBSITE)
+		index.addRelation('urn:X-transportapi:rels:createdAt', datetime.datetime.utcnow().isoformat())
 
 		for current_folder in os.listdir(self.output_dir):
 			try:
@@ -281,13 +283,13 @@ class HypercatBuilder():
 				# remove extension from file name 
 				f = os.path.splitext(current_file)[0]
 
-				r_live = hypercat.Resource('{:s}: Departures Catalogue - {:s}'.format(current_folder.title(), f.title()), 'application/json')
-				index.addItem(r_live, '{:s}/cat/{:s}-{:s}'.format(self.base_url, current_folder, f))
+				r_live = hypercat.Resource('{:s}: Departures Catalogue - {:s}'.format(current_folder.title(), f.title()), 'application/vnd.hypercat.catalogue+json')
+				index.addItem(r_live, '{:s}/cat/{:s}/{:s}'.format(self.base_url, current_folder, f))
 
 		self.save_index(index.prettyprint())
 
 	def save_index(self, catalogue):
-		with open('{:s}/hypercat.json'.format(self.output_dir), "w") as f:
+		with open('{:s}/cat.json'.format(self.output_dir), "w") as f:
 			f.write(catalogue)
 
 	def generate_hypercat_file(self):
