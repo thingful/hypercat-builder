@@ -33,7 +33,7 @@ this flag generates links to the main TransportAPI website.
 ----------------------------------------------------------------
 
 Usage:
-  hypercat_builder.py run [--input=<filename>] [--output=<directory>] [--fcc]
+  hypercat_builder.py run [--input=<path>] [--output=<directory>] [--fcc]
   hypercat_builder.py -h | --help
   hypercat_builder.py --version
 
