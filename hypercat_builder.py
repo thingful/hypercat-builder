@@ -37,11 +37,11 @@ Usage:
   hypercat_builder.py --version
 
 Options:
-  -h, --help              	Show this screen.
-  --version               	Show version.
-  --input=<filename>   			Folder containing the input CSV files for processing.
-  --output=<directory>      Directory the output JSON should be written to.
-  --fcc                   	Future City Catapult flag.
+  -h, --help                Show this screen.
+  --version                 Show version.
+  --input=<filename>        Folder containing the input CSV files for processing
+  --output=<directory>      Directory the output JSON should be written to
+  --fcc                     Future City Catapult flag.
 
 """
 
@@ -51,13 +51,16 @@ import csv
 import os
 import sys
 import errno
+import ntpath
 
-PROVIDER_NAME = "Transportapi"
+PROVIDER_NAME = "TransportAPI"
 
-DEFAULT_DATASETS = { 'atcocodes-ferry.csv' : 'ferry', 
-										 'atcocodes-tram.csv'  : 'tram',
-										 'crs_codes-everything.csv' : 'train' }
+MAX_CATALOGUE_LENGTH = 10000
 
+DEFAULT_DATASETS = { 'atcocodes-ferry.csv'			: 'ferry', 
+										 'atcocodes-tram.csv'  			: 'tram',
+										 'atcocodes-bus.csv' 				: 'bus',
+										 'crs_codes-everything.csv' : 'train', }
 
 class HypercatBuilder():
 	
@@ -65,6 +68,9 @@ class HypercatBuilder():
 		self.input_file = input_file
 		self.output_file = output_file
 		self.base_url = base_url
+		self.file_name = '' # the name of the file currently being processed
+		self.current_dataset = ''
+		self.current_datatype = ''
 		
 	# generate rel val pairs for bus stops, and ferries
 	def build_hcitem_stops(self, csvRow, data_type, data_currency):
@@ -72,23 +78,27 @@ class HypercatBuilder():
 
 		node_type = '{:s}_stop'.format(data_type)
 
+		try :
+			lat = (float)(csvRow[8])/100000.0
+		except:
+			lat = csvRow[8]
+
+		try:
+			lon = (float)(csvRow[9])/100000.0
+		except:
+			lon = csvRow[9]
+
 		# instantiate new item
-		r = hypercat.Resource('{:s} station: LiveData'.format(csvRow[7]),  'application/json')
+		r = hypercat.Resource('{:s}: {:s} Departures'.format(csvRow[7], data_currency.title()), 'application/json')
 
 		# ATCO
 		r.addItemMetadata('urn:X-{:s}:rels:hasATCOCode'.format(PROVIDER_NAME), csvRow[1])
 
-		# name
-		r.addItemMetadata('urn:X-{:s}:rels:hasName'.format(PROVIDER_NAME), csvRow[7])
-
-		# created at
-		r.addItemMetadata('urn:X-{:s}:rels:hasCreatedAt'.format(PROVIDER_NAME), csvRow[6])
-
 		# lat
-		r.addItemMetadata('http://www.w3.org/2003/01/geo/wgs84_pos#lat', csvRow[8])
+		r.addItemMetadata('http://www.w3.org/2003/01/geo/wgs84_pos#lat', str(lat) )
 
 		# lon
-		r.addItemMetadata('http://www.w3.org/2003/01/geo/wgs84_pos#long', csvRow[9])
+		r.addItemMetadata('http://www.w3.org/2003/01/geo/wgs84_pos#long', str(lon))
 
 		# type
 		r.addItemMetadata('urn:X-{:s}:rels:isNodeType'.format(PROVIDER_NAME), node_type)
@@ -103,7 +113,7 @@ class HypercatBuilder():
 		"""Extracts data from a single csv row for train stations"""
 
 		# instantiate new item
-		r = hypercat.Resource('{:s} station: live data'.format(csvRow[3]),  'application/json')
+		r = hypercat.Resource('{:s}: {:s} Departures'.format(csvRow[3], data_currency.title()),  'application/json')
 
 		# lat
 		r.addItemMetadata('http://www.w3.org/2003/01/geo/wgs84_pos#lat', csvRow[7])
@@ -117,12 +127,6 @@ class HypercatBuilder():
 		# tiploc
 		r.addItemMetadata('urn:X-{:s}:rels:hasTiplocCode'.format(PROVIDER_NAME), csvRow[1])
 
-		# name
-		r.addItemMetadata('urn:X-{:s}:rels:hasName'.format(PROVIDER_NAME), csvRow[3])
-
-		# created at
-		r.addItemMetadata('urn:X-{:s}:rels:hasCreatedAt'.format(PROVIDER_NAME), csvRow[14])
-
 		# type
 		r.addItemMetadata('urn:X-{:s}:rels:isNodeType'.format(PROVIDER_NAME), 'train_station')
 
@@ -131,14 +135,16 @@ class HypercatBuilder():
 
 		return r
 
-	def parse_csv(self, file_to_parse, catalogue_type):
+	def parse_csv(self, file_to_parse, catalogue_type, index):
 		"""loops trough the CSV input file and returns a hypercat catalogue"""
 
 		# create new hypercat catalogue for live items
-		live_h = hypercat.Hypercat("{:s} - {:s} Live Catalogue".format(PROVIDER_NAME, catalogue_type.title()))
+		live_h = hypercat.Hypercat('{:s} - {:s} Live Catalogue'.format(PROVIDER_NAME, catalogue_type.title()))
 
 		# create new hypercat catalogue for timetable items
-		timetable_h = hypercat.Hypercat("{:s} - {:s} Timetable Catalogue".format(PROVIDER_NAME, catalogue_type.title()))
+		timetable_h = hypercat.Hypercat('{:s} - {:s} Timetable Catalogue'.format(PROVIDER_NAME, catalogue_type.title()))
+
+		loop_again = False
 
 		# load csv file
 		with open(file_to_parse, 'rb') as csvfile:
@@ -147,12 +153,22 @@ class HypercatBuilder():
 				if i == 0 :
 					continue
 
-				if catalogue_type == 'crs_codes-everything.csv':
+				# continue to nth line if iterating
+				if i <= MAX_CATALOGUE_LENGTH * (index-1):
+					continue
+
+				# breake if catalogue limit has been reached
+				if i > MAX_CATALOGUE_LENGTH * index:
+					loop_again = True
+					break
+
+				if catalogue_type == 'train':
+					
 					live_r = self.build_hcitem_station(row, 'live')
-					live_h.addItem(r, 'http://fcc.transportapi.com/v3/uk/train/station/{:s}/live.json'.format(row[5]))
+					live_h.addItem(live_r, '{:s}v3/uk/train/station/{:s}/live.json'.format(self.base_url, row[5]))
 
 					timetable_r = self.build_hcitem_station(row, 'timetable')
-					timetable_h.addItem(r, 'http://fcc.transportapi.com/v3/uk/train/station/{:s}/live.json'.format(row[5]))
+					timetable_h.addItem(timetable_r, '{:s}/v3/uk/train/station/{:s}/timetable.json'.format(self.base_url, row[5]))
 
 				else :
 					live_r = self.build_hcitem_stops(row, catalogue_type, 'live')
@@ -161,13 +177,20 @@ class HypercatBuilder():
 					timetable_r = self.build_hcitem_stops(row, catalogue_type, 'timetable')
 					timetable_h.addItem(timetable_r, '{:s}/v3/uk/{:s}/stop/{:s}/timetable.json'.format(self.base_url, catalogue_type, row[1]))
 
-		self.build_live_catalogue(live_h, catalogue_type)
-		self.build_timetable_catalogue(timetable_h, catalogue_type)
+		self.build_live_catalogue(live_h, catalogue_type, index)
+		self.build_timetable_catalogue(timetable_h, catalogue_type, index)
 
-	def build_live_catalogue(self, json_data, cat_type) :
+		# need to loop again?
+		if loop_again:
+			self.parse_csv(file_to_parse, catalogue_type, index+1)
+
+	def build_live_catalogue(self, json_data, cat_type, index) :
 		output_content = json_data.prettyprint()
 
-		file_name = 'output/{:s}/live.json'.format(cat_type)
+		if index > 1:
+			file_name = 'output/{:s}/live-{:d}.json'.format(cat_type, index)
+		else :
+			file_name = 'output/{:s}/live.json'.format(cat_type)
 		
 		if not os.path.exists(os.path.dirname(file_name)):
 			try:
@@ -180,14 +203,17 @@ class HypercatBuilder():
 			f.write(output_content)
 
 		if os.path.isfile(file_name):
-			print '{:s}\t\t{:s}'.format(file_name, 'successfully saved')
+			print '{:s} ===> {:s}'.format(file_name, 'successfully saved')
 		else:
-			print '{:s}\t\terror! File not saved'.format(file_name)
+			print '{:s} ===> error! File not saved'.format(file_name)
 
-	def build_timetable_catalogue(self, json_data, cat_type) :
+	def build_timetable_catalogue(self, json_data, cat_type, index, add_count=False) :
 		output_content = json_data.prettyprint()
 
-		file_name = 'output/{:s}/timetable.json'.format(cat_type)
+		if index > 1 :
+			file_name = 'output/{:s}/timetable-{}.json'.format(cat_type, index)
+		else :
+			file_name = 'output/{:s}/timetable.json'.format(cat_type)
 		
 		if not os.path.exists(os.path.dirname(file_name)):
 			try:
@@ -200,36 +226,48 @@ class HypercatBuilder():
 			f.write(output_content)
 
 		if os.path.isfile(file_name):
-			print '{:s}\t{:s}'.format(file_name, 'successfully saved')
+			print '{:s} ===> {:s}'.format(file_name, 'successfully saved')
 		else:
-			print '{:s}\t\terror! File not saved'.format(file_name)
+			print '{:s} ===> error! File not saved'.format(file_name)
 
 	def validate_input_files(self):
 		"""ensures input files of csv type"""
+
+		# this will ensure that if a path was use as input
+		# we validate against the file name only
+		self.file_name = ntpath.basename(self.input_file)
+
 		if not os.path.isfile(self.input_file) or not self.input_file.endswith('.csv'): 
 			print('\nPlease choose a valid file\n')
 			return False
-		
-		elif self.input_file not in DEFAULT_DATASETS:
+		elif self.file_name not in DEFAULT_DATASETS:			
 			print('\nPlease ensure your input file is labelled correctly.\nUse <hypercat_builder.py --help> for a list of valid file names.\n')
 			return False
-		
 		else :
 			return True
 
+	def build_index(self):
+		pass
+
 	def generate_hypercat_file(self):
 		"""builds a hypercat catalogue a saves it to a file"""
-		
+
 		# parse input
 		if self.input_file == 'all':
 			# enseure input files are present
 			for dataset, datatype in DEFAULT_DATASETS.iteritems():
-				h = self.parse_csv(dataset, datatype)
+				self.current_dataset = dataset
+				self.current_datatype = datatype
+
+				h = self.parse_csv(dataset, datatype, 1)
 		
 		else :
 			if self.validate_input_files():
-				h = self.parse_csv(self.input_file, DEFAULT_DATASETS[self.input_file])
+				self.current_dataset = self.input_file
+				self.current_datatype = DEFAULT_DATASETS[self.file_name]
+				h = self.parse_csv(self.input_file, DEFAULT_DATASETS[self.file_name], 1)
 
+		self.build_index()
 
 def main(arguments):
 	"""checks if any of the default arguments have been over-written
@@ -249,8 +287,8 @@ def main(arguments):
 	if arguments['--fcc']:
 		base_url = 'http://fcc.transportapi.com'
 
-	hype = HypercatBuilder(input_file, output_dir, base_url)
-	hype.generate_hypercat_file()
+	hyperct = HypercatBuilder(input_file, output_dir, base_url)
+	hyperct.generate_hypercat_file()
 
 if __name__ == '__main__':
 	arguments = docopt(__doc__, version='Hypercat Builder 1.0')
