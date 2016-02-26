@@ -1,1 +1,8 @@
+# general things to ignore in python
+*.py[cod]
+__pycache__/
+*.so
+*~
+
+# ignore the default output folder
 output/
