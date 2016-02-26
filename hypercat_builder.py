@@ -54,12 +54,13 @@ import sys
 import errno
 import ntpath
 import datetime
+import re
 
 PROVIDER_NAME = "TransportAPI"
 
 PROVIDER_WEBSITE = "http://www.transportapi.com/"
 
-MAX_CATALOGUE_LENGTH = 3000
+MAX_CATALOGUE_LENGTH = 10000
 
 DEFAULT_DATASETS = { 'atcocodes-ferry.csv'			: 'ferry', 
 										 'atcocodes-tram.csv'				: 'tram',
@@ -180,25 +181,25 @@ class HypercatBuilder():
 					timetable_r = self.build_hcitem_station(row, 'timetable')
 					timetable_h.addItem(timetable_r, '{:s}/v3/uk/train/station/{:s}/timetable.json'.format(self.base_url, row[5]))
 
-				else :
+				else:
 					live_r = self.build_hcitem_stops(row, catalogue_type, 'live')
 					live_h.addItem(live_r, '{:s}/v3/uk/{:s}/stop/{:s}/live.json'.format(self.base_url, catalogue_type, row[1]))
 
 					timetable_r = self.build_hcitem_stops(row, catalogue_type, 'timetable')
 					timetable_h.addItem(timetable_r, '{:s}/v3/uk/{:s}/stop/{:s}/timetable.json'.format(self.base_url, catalogue_type, row[1]))
 
-		self.build_live_catalogue(live_h, catalogue_type, index)
-		self.build_timetable_catalogue(timetable_h, catalogue_type, index)
+		self.build_live_catalogue(live_h, catalogue_type, index, loop_again)
+		self.build_timetable_catalogue(timetable_h, catalogue_type, index, loop_again)
 
 		# need to loop again?
 		if loop_again:
 			self.parse_csv(file_to_parse, catalogue_type, index+1)
 
-	def build_live_catalogue(self, json_data, cat_type, index) :
+	def build_live_catalogue(self, json_data, cat_type, index, add_file_count) :
 		output_content = json_data.prettyprint()
 		output_base_dir= self.sanitize_output(self.output_dir)
 
-		if index > 1:
+		if index > 1 or add_file_count == True :
 			file_name = '{:s}/{:s}/live-{:d}.json'.format(output_base_dir, cat_type, index)
 		else :
 			file_name = '{:s}/{:s}/live.json'.format(output_base_dir, cat_type)
@@ -218,11 +219,11 @@ class HypercatBuilder():
 		else:
 			print '{:s} ===> error! File not saved'.format(file_name)
 
-	def build_timetable_catalogue(self, json_data, cat_type, index, add_count=False) :
+	def build_timetable_catalogue(self, json_data, cat_type, index, add_file_count) :
 		output_content = json_data.prettyprint()
 		output_base_dir= self.sanitize_output(self.output_dir)
 
-		if index > 1 :
+		if index > 1 or add_file_count == True:
 			file_name = '{:s}/{:s}/timetable-{}.json'.format(output_base_dir, cat_type, index)
 		else :
 			file_name = '{:s}/{:s}/timetable.json'.format(output_base_dir, cat_type)
@@ -279,7 +280,7 @@ class HypercatBuilder():
 			except OSError:
 				continue
 
-			for current_file in sorted(available_files):
+			for current_file in natural_sort(available_files):
 				# remove extension from file name 
 				f = os.path.splitext(current_file)[0]
 
@@ -327,6 +328,13 @@ class HypercatBuilder():
 
 		self.build_index()
 
+# natural_sort function below taken from
+# http://stackoverflow.com/questions/4836710/does-python-have-a-built-in-function-for-string-natural-sort
+def natural_sort(l): 
+	convert = lambda text: int(text) if text.isdigit() else text.lower() 
+	alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
+	return sorted(l, key = alphanum_key)
+    	
 def main(arguments):
 	"""checks if any of the default arguments have been over-written
 	   and starts the catalogue(s) building process"""
