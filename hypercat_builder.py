@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Hypercat Builder
 ----------------------------------------------------------------
 hypercat_builder.py is a simple tool for building HyperCat 2 compatible
@@ -39,7 +40,7 @@ Usage:
 Options:
   -h, --help                Show this screen.
   --version                 Show version.
-  --input=<filename>        Folder containing the input CSV files for processing
+  --input=<path>        		Folder containing the input CSV files for processing. Can be a folder or an individual file
   --output=<directory>      Directory the output JSON should be written to
   --fcc                     Future City Catapult flag.
 
@@ -52,8 +53,11 @@ import os
 import sys
 import errno
 import ntpath
+import datetime
 
 PROVIDER_NAME = "TransportAPI"
+
+PROVIDER_WEBSITE = "http://www.transportapi.com/"
 
 MAX_CATALOGUE_LENGTH = 10000
 
@@ -142,9 +146,13 @@ class HypercatBuilder():
 
 		# create new hypercat catalogue for live items
 		live_h = hypercat.Hypercat('{:s} - {:s} Live Catalogue'.format(PROVIDER_NAME, catalogue_type.title()))
+		live_h.addRelation('urn:X-hypercat:rels:hasHomePage', PROVIDER_WEBSITE)
+		live_h.addRelation('urn:X-transportapi:rels:createdAt', datetime.datetime.utcnow().isoformat())
 
 		# create new hypercat catalogue for timetable items
 		timetable_h = hypercat.Hypercat('{:s} - {:s} Timetable Catalogue'.format(PROVIDER_NAME, catalogue_type.title()))
+		timetable_h.addRelation('urn:X-hypercat:rels:hasHomePage', PROVIDER_WEBSITE)
+		timetable_h.addRelation('urn:X-transportapi:rels:createdAt', datetime.datetime.utcnow().isoformat())
 
 		# loop flag
 		loop_again = False
@@ -152,8 +160,8 @@ class HypercatBuilder():
 		# load csv file
 		with open(file_to_parse, 'rb') as csvfile:
 			dbreader = csv.reader(csvfile, delimiter=';', quotechar='"')
+			next(dbreader, None) 
 			for i, row in enumerate(dbreader):
-				next(dbreader, None)  # skip the headers
 
 				# continue to nth line if iterating
 				if i <= MAX_CATALOGUE_LENGTH * (index-1):
@@ -188,11 +196,12 @@ class HypercatBuilder():
 
 	def build_live_catalogue(self, json_data, cat_type, index) :
 		output_content = json_data.prettyprint()
+		output_base_dir= self.sanitize_output(self.output_dir)
 
 		if index > 1:
-			file_name = '{:s}{:s}/live-{:d}.json'.format(self.output_dir, cat_type, index)
+			file_name = '{:s}/{:s}/live-{:d}.json'.format(output_base_dir, cat_type, index)
 		else :
-			file_name = '{:s}{:s}/live.json'.format(self.output_dir, cat_type)
+			file_name = '{:s}/{:s}/live.json'.format(output_base_dir, cat_type)
 		
 		if not os.path.exists(os.path.dirname(file_name)):
 			try:
@@ -211,11 +220,12 @@ class HypercatBuilder():
 
 	def build_timetable_catalogue(self, json_data, cat_type, index, add_count=False) :
 		output_content = json_data.prettyprint()
+		output_base_dir= self.sanitize_output(self.output_dir)
 
 		if index > 1 :
-			file_name = '{:s}{:s}/timetable-{}.json'.format(self.output_dir, cat_type, index)
+			file_name = '{:s}/{:s}/timetable-{}.json'.format(output_base_dir, cat_type, index)
 		else :
-			file_name = '{:s}{:s}/timetable.json'.format(self.output_dir, cat_type)
+			file_name = '{:s}/{:s}/timetable.json'.format(output_base_dir, cat_type)
 		
 		if not os.path.exists(os.path.dirname(file_name)):
 			try:
@@ -232,39 +242,53 @@ class HypercatBuilder():
 		else:
 			print '{:s} ===> error! File not saved'.format(file_name)
 
-	def validate_input_files(self):
+	def validate_input_file(self, input_file):
 		"""ensures input files of csv type"""
-
-		print(self.input_file)
 
 		# this will ensure that if a path was use as input
 		# we validate against the file name only
-		self.file_name = ntpath.basename(self.input_file)
+		self.file_name = ntpath.basename(input_file)
 
-		if not os.path.isfile(self.input_file) or not self.input_file.endswith('.csv'): 
+		if not input_file.endswith('.csv'): # file is not of csv type
 			print('\nPlease choose a valid file\n')
 			return False
-		elif self.file_name not in DEFAULT_DATASETS:			
+		elif self.file_name not in DEFAULT_DATASETS: # file is not in part of the allowed file names
+			print('\nWARNING: {:s} was not recognized'.format(input_file))	
 			print('\nPlease ensure your input file is labelled correctly.\nUse <hypercat_builder.py --help> for a list of valid file names.\n')
+			return False
+		elif os.path.exists(input_file) == False: # the input path does not exist
+			print('\nWARNING: please ensure the input path is correct.\n')
 			return False
 		else :
 			return True
+
+	def sanitize_output(self, output_path):
+		otp_path = output_path.strip('/')
+
+		return otp_path 
 
 	def build_index(self):
 		# create a new hypercat catalogue
 		index = hypercat.Hypercat('{:s} - Index Catalogue'.format(PROVIDER_NAME))
 
 		for current_folder in os.listdir(self.output_dir):
-			for files in os.listdir(os.path.join(self.output_dir, current_folder)):
-				# sort order
+			try:
+				available_files = os.listdir(os.path.join(self.output_dir, current_folder))
+			except OSError:
+				continue
 
+			for current_file in sorted(available_files):
 				# remove extension from file name 
-				f = os.path.splitext(files)[0]
+				f = os.path.splitext(current_file)[0]
 
-				r_live = hypercat.Resource('{:s}: Departures Catalogue'.format(current_folder.title()), 'application/json')
+				r_live = hypercat.Resource('{:s}: Departures Catalogue - {:s}'.format(current_folder.title(), f.title()), 'application/json')
 				index.addItem(r_live, '{:s}/cat/{:s}-{:s}'.format(self.base_url, current_folder, f))
 
-		print index.prettyprint()
+		self.save_index(index.prettyprint())
+
+	def save_index(self, catalogue):
+		with open('{:s}/hypercat.json'.format(self.output_dir), "w") as f:
+			f.write(catalogue)
 
 	def generate_hypercat_file(self):
 		"""loops thorugh the available input files
@@ -279,13 +303,25 @@ class HypercatBuilder():
 					self.current_datatype = datatype
 					h = self.parse_csv(dataset, datatype, 1)
 				else:
-					print ('Warning: {:s} file is missing'.format(dataset))
+					print ('WARNING: {:s} file is missing'.format(dataset))
 		
 		else :
-			if self.validate_input_files():
-				self.current_dataset = self.input_file
-				self.current_datatype = DEFAULT_DATASETS[self.file_name]
-				h = self.parse_csv(self.input_file, DEFAULT_DATASETS[self.file_name], 1)
+			if os.path.isdir(self.input_file) : # input is a directory
+				for current_file in os.listdir(self.input_file):
+					if os.path.isfile(os.path.join(self.input_file, current_file)) and self.validate_input_file(current_file):
+						self.current_dataset = current_file
+						self.current_datatype = DEFAULT_DATASETS[current_file]
+						h = self.parse_csv(os.path.join(self.input_file, current_file), DEFAULT_DATASETS[current_file], 1)
+					else:
+						return
+
+			else: # input is a file
+				if self.validate_input_file(self.input_file):
+					self.current_dataset = self.input_file
+					self.current_datatype = DEFAULT_DATASETS[self.file_name]
+					h = self.parse_csv(self.input_file, DEFAULT_DATASETS[self.file_name], 1)
+				else:
+					return
 
 		self.build_index()
 
