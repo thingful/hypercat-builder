@@ -58,23 +58,23 @@ PROVIDER_NAME = "TransportAPI"
 MAX_CATALOGUE_LENGTH = 10000
 
 DEFAULT_DATASETS = { 'atcocodes-ferry.csv'			: 'ferry', 
-										 'atcocodes-tram.csv'  			: 'tram',
-										 'atcocodes-bus.csv' 				: 'bus',
+										 'atcocodes-tram.csv'				: 'tram',
+										 'atcocodes-bus.csv'				: 'bus',
 										 'crs_codes-everything.csv' : 'train', }
 
 class HypercatBuilder():
 	
-	def __init__(self, input_file, output_file, base_url):
+	def __init__(self, input_file, output_dir, base_url):
 		self.input_file = input_file
-		self.output_file = output_file
+		self.output_dir = output_dir
 		self.base_url = base_url
 		self.file_name = '' # the name of the file currently being processed
 		self.current_dataset = ''
 		self.current_datatype = ''
 		
-	# generate rel val pairs for bus stops, and ferries
 	def build_hcitem_stops(self, csvRow, data_type, data_currency):
-		"""Extracts data from a single csv row"""
+		"""Extracts data from a single csv row and generates rel val 
+		pairs for bus stops, and ferries"""
 
 		node_type = '{:s}_stop'.format(data_type)
 
@@ -108,9 +108,9 @@ class HypercatBuilder():
 
 		return r
 
-	# generate rel val pairs for train staions
 	def build_hcitem_station(self, csvRow, data_currency):
-		"""Extracts data from a single csv row for train stations"""
+		"""Extracts data from a single csv row generate rel val 
+		pairs for train stations"""
 
 		# instantiate new item
 		r = hypercat.Resource('{:s}: {:s} Departures'.format(csvRow[3], data_currency.title()),  'application/json')
@@ -136,7 +136,9 @@ class HypercatBuilder():
 		return r
 
 	def parse_csv(self, file_to_parse, catalogue_type, index):
-		"""loops trough the CSV input file and returns a hypercat catalogue"""
+		"""loops trough the CSV input file and returns a hypercat catalogue.
+		If the number of rows exceed the MAX_CATALOGUE_LENGTH multiple files
+		will be generated until the end of the file is reached"""
 
 		# create new hypercat catalogue for live items
 		live_h = hypercat.Hypercat('{:s} - {:s} Live Catalogue'.format(PROVIDER_NAME, catalogue_type.title()))
@@ -144,14 +146,14 @@ class HypercatBuilder():
 		# create new hypercat catalogue for timetable items
 		timetable_h = hypercat.Hypercat('{:s} - {:s} Timetable Catalogue'.format(PROVIDER_NAME, catalogue_type.title()))
 
+		# loop flag
 		loop_again = False
 
 		# load csv file
 		with open(file_to_parse, 'rb') as csvfile:
 			dbreader = csv.reader(csvfile, delimiter=';', quotechar='"')
 			for i, row in enumerate(dbreader):
-				if i == 0 :
-					continue
+				next(dbreader, None)  # skip the headers
 
 				# continue to nth line if iterating
 				if i <= MAX_CATALOGUE_LENGTH * (index-1):
@@ -188,9 +190,9 @@ class HypercatBuilder():
 		output_content = json_data.prettyprint()
 
 		if index > 1:
-			file_name = 'output/{:s}/live-{:d}.json'.format(cat_type, index)
+			file_name = '{:s}{:s}/live-{:d}.json'.format(self.output_dir, cat_type, index)
 		else :
-			file_name = 'output/{:s}/live.json'.format(cat_type)
+			file_name = '{:s}{:s}/live.json'.format(self.output_dir, cat_type)
 		
 		if not os.path.exists(os.path.dirname(file_name)):
 			try:
@@ -211,9 +213,9 @@ class HypercatBuilder():
 		output_content = json_data.prettyprint()
 
 		if index > 1 :
-			file_name = 'output/{:s}/timetable-{}.json'.format(cat_type, index)
+			file_name = '{:s}{:s}/timetable-{}.json'.format(self.output_dir, cat_type, index)
 		else :
-			file_name = 'output/{:s}/timetable.json'.format(cat_type)
+			file_name = '{:s}{:s}/timetable.json'.format(self.output_dir, cat_type)
 		
 		if not os.path.exists(os.path.dirname(file_name)):
 			try:
@@ -233,6 +235,8 @@ class HypercatBuilder():
 	def validate_input_files(self):
 		"""ensures input files of csv type"""
 
+		print(self.input_file)
+
 		# this will ensure that if a path was use as input
 		# we validate against the file name only
 		self.file_name = ntpath.basename(self.input_file)
@@ -247,19 +251,35 @@ class HypercatBuilder():
 			return True
 
 	def build_index(self):
-		pass
+		# create a new hypercat catalogue
+		index = hypercat.Hypercat('{:s} - Index Catalogue'.format(PROVIDER_NAME))
+
+		for current_folder in os.listdir(self.output_dir):
+			for files in os.listdir(os.path.join(self.output_dir, current_folder)):
+				# sort order
+
+				# remove extension from file name 
+				f = os.path.splitext(files)[0]
+
+				r_live = hypercat.Resource('{:s}: Departures Catalogue'.format(current_folder.title()), 'application/json')
+				index.addItem(r_live, '{:s}/cat/{:s}-{:s}'.format(self.base_url, current_folder, f))
+
+		print index.prettyprint()
 
 	def generate_hypercat_file(self):
-		"""builds a hypercat catalogue a saves it to a file"""
+		"""loops thorugh the available input files
+		and starts the catalogue generation process"""
 
 		# parse input
 		if self.input_file == 'all':
-			# enseure input files are present
+			# ensure input files are present or raise a warning
 			for dataset, datatype in DEFAULT_DATASETS.iteritems():
-				self.current_dataset = dataset
-				self.current_datatype = datatype
-
-				h = self.parse_csv(dataset, datatype, 1)
+				if os.path.isfile(dataset):
+					self.current_dataset = dataset
+					self.current_datatype = datatype
+					h = self.parse_csv(dataset, datatype, 1)
+				else:
+					print ('Warning: {:s} file is missing'.format(dataset))
 		
 		else :
 			if self.validate_input_files():
@@ -282,7 +302,7 @@ def main(arguments):
 		input_file = arguments['--input']
 
 	if arguments['--output']:
-		input_file = arguments['--output']
+		output_dir = arguments['--output']
 
 	if arguments['--fcc']:
 		base_url = 'http://fcc.transportapi.com'
