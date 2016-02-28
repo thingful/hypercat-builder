@@ -283,7 +283,7 @@ class HypercatBuilder():
 		else:
 			print('\nWARNING: {:s} was not recognized'.format(input_file))	
 			print('\nPlease ensure your input file is labelled correctly.\nUse <hypercat_builder.py --help> for a list of valid file names.\n') 
-			return
+			return False
 
 	def sanitize_output(self, output_path):
 		"""removes forward slashes from the beginning and the end of the output path"""
@@ -324,17 +324,17 @@ class HypercatBuilder():
 		if os.path.isdir(self.input_path) and self.validate_input_folder(): # input is a directory
 			for current_file in os.listdir(self.input_path):
 				path_to_file = os.path.join(self.input_path, current_file)
-				if os.path.isfile(path_to_file) and self.validate_input_file(path_to_file):
+				if os.path.isfile(path_to_file) and self.validate_input_file_and_get_type(path_to_file):
 					self.current_dataset = current_file
-					self.current_datatype = self.validate_input_file(current_file)
+					self.current_datatype = self.validate_input_file_and_get_type(current_file)
 					h = self.parse_csv(os.path.join(self.input_path, current_file), self.current_datatype, 1)
 				else:
 					continue
 
 		else: # input is a file
-			if self.validate_input_file(self.input_path):
+			if self.validate_input_file_and_get_type(self.input_path):
 				self.current_dataset = self.input_path
-				self.current_datatype = self.validate_input_file(self.input_path)
+				self.current_datatype = self.validate_input_file_and_get_type(self.input_path)
 				h = self.parse_csv(self.input_path, self.current_datatype, 1)
 			else:
 				return
