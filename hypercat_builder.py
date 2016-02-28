@@ -42,7 +42,7 @@ Options:
   -h, --help                Show this screen.
   --version                 Show version.
   --input=<path>            Folder containing the input CSV files for processing.
-                            It can be a folder or an individual file [default: all].
+                            It can be a folder or an individual file [default: ./data].
   --output=<directory>      Directory the output JSON should be written to
                             [default: ./output].
   --fcc                     Future City Catapult flag.
@@ -68,12 +68,12 @@ MAX_CATALOGUE_LENGTH = 10000
 DEFAULT_DATASETS = { 'atcocodes-ferry.csv'			: 'ferry', 
 										 'atcocodes-tram.csv'				: 'tram',
 										 'atcocodes-bus.csv'				: 'bus',
-										 'crs_codes-everything.csv' : 'train', }
+										 'crs_codes-everything.csv' : 'train' }
 
 class HypercatBuilder():
 	
 	def __init__(self, input_file, output_dir, base_url):
-		self.input_file = input_file
+		self.input_path = input_file
 		self.output_dir = output_dir
 		self.base_url = base_url
 		self.file_name = '' # the name of the file currently being processed
@@ -246,34 +246,54 @@ class HypercatBuilder():
 		else:
 			print '{:s} ===> error! File not saved'.format(file_name)
 
-	def validate_input_file(self, input_file):
-		"""ensures input files of csv type"""
+	def validate_input_folder(self):
+		if len(os.listdir(self.input_path)) == 0:
+			print '\nWARNING: input folder {:s} is empty.'.format(self.input_path)
+			return False
 
-		# this will ensure that if a path was use as input
+		return True
+
+	def validate_input_file_and_get_type(self, input_file):
+		"""validates input files and returns the catalogue type"""
+
+		# this will ensure that if a path was used as input
 		# we validate against the file name only
 		self.file_name = ntpath.basename(input_file)
 
-		if not input_file.endswith('.csv'): # file is not of csv type
-			print('\nPlease choose a valid file\n')
+		if os.path.exists(input_file) == False: # the input path does not exist
+			print('\nWARNING: please ensure the input path is correct.\nUse <hypercat_builder.py --help> for help.\n')
 			return False
-		elif self.file_name not in DEFAULT_DATASETS: # file is not in part of the allowed file names
+
+		elif not input_file.endswith('.csv'): # file is not of csv type
+			print('\nPlease choose a valid input file. Use <hypercat_builder.py --help> for help. \n')
+			return False
+
+		file_type = self.get_catalogue_type(self.file_name)
+		return file_type
+
+	def get_catalogue_type(self, input_file):
+		if re.search(r'bus', input_file):
+			return 'bus'
+		elif re.search(r'tram', input_file):
+			return 'tram'
+		elif re.search(r'ferr', input_file):
+			return 'ferry'
+		elif re.search(r'everything', input_file) or re.search(r'train', input_file):
+			return 'train'
+		else:
 			print('\nWARNING: {:s} was not recognized'.format(input_file))	
-			print('\nPlease ensure your input file is labelled correctly.\nUse <hypercat_builder.py --help> for a list of valid file names.\n')
-			return False
-		elif os.path.exists(input_file) == False: # the input path does not exist
-			print('\nWARNING: please ensure the input path is correct.\n')
-			return False
-		else :
-			return True
+			print('\nPlease ensure your input file is labelled correctly.\nUse <hypercat_builder.py --help> for a list of valid file names.\n') 
+			return
 
 	def sanitize_output(self, output_path):
+		"""removes forward slashes from the beginning and the end of the output path"""
 		otp_path = output_path.strip('/')
 
 		return otp_path 
 
 	def build_index(self):
 		# create a new hypercat catalogue
-		index = hypercat.Hypercat('{:s} - Index Catalogue'.format(PROVIDER_NAME))
+		index = hypercat.Hypercat('{:s} Catalogue'.format(PROVIDER_NAME))
 		index.addRelation('urn:X-hypercat:rels:hasHomePage', PROVIDER_WEBSITE)
 		index.addRelation('urn:X-transportapi:rels:createdAt', datetime.datetime.utcnow().isoformat())
 
@@ -296,38 +316,28 @@ class HypercatBuilder():
 		with open('{:s}/cat.json'.format(self.output_dir), "w") as f:
 			f.write(catalogue)
 
-	def generate_hypercat_file(self):
+	def generate_hypercat_file(self): 
 		"""loops thorugh the available input files
 		and starts the catalogue generation process"""
 
 		# parse input
-		if self.input_file == 'all':
-			# ensure input files are present or raise a warning
-			for dataset, datatype in DEFAULT_DATASETS.iteritems():
-				if os.path.isfile(dataset):
-					self.current_dataset = dataset
-					self.current_datatype = datatype
-					h = self.parse_csv(dataset, datatype, 1)
+		if os.path.isdir(self.input_path) and self.validate_input_folder(): # input is a directory
+			for current_file in os.listdir(self.input_path):
+				path_to_file = os.path.join(self.input_path, current_file)
+				if os.path.isfile(path_to_file) and self.validate_input_file(path_to_file):
+					self.current_dataset = current_file
+					self.current_datatype = self.validate_input_file(current_file)
+					h = self.parse_csv(os.path.join(self.input_path, current_file), self.current_datatype, 1)
 				else:
-					print ('WARNING: {:s} file is missing'.format(dataset))
-		
-		else :
-			if os.path.isdir(self.input_file) : # input is a directory
-				for current_file in os.listdir(self.input_file):
-					if os.path.isfile(os.path.join(self.input_file, current_file)) and self.validate_input_file(current_file):
-						self.current_dataset = current_file
-						self.current_datatype = DEFAULT_DATASETS[current_file]
-						h = self.parse_csv(os.path.join(self.input_file, current_file), DEFAULT_DATASETS[current_file], 1)
-					else:
-						return
+					continue
 
-			else: # input is a file
-				if self.validate_input_file(self.input_file):
-					self.current_dataset = self.input_file
-					self.current_datatype = DEFAULT_DATASETS[self.file_name]
-					h = self.parse_csv(self.input_file, DEFAULT_DATASETS[self.file_name], 1)
-				else:
-					return
+		else: # input is a file
+			if self.validate_input_file(self.input_path):
+				self.current_dataset = self.input_path
+				self.current_datatype = self.validate_input_file(self.input_path)
+				h = self.parse_csv(self.input_path, self.current_datatype, 1)
+			else:
+				return
 
 		self.build_index()
 
