@@ -65,11 +65,6 @@ PROVIDER_WEBSITE = "http://www.transportapi.com/"
 
 MAX_CATALOGUE_LENGTH = 10000
 
-DEFAULT_DATASETS = { 'atcocodes-ferry.csv'			: 'ferry', 
-										 'atcocodes-tram.csv'				: 'tram',
-										 'atcocodes-bus.csv'				: 'bus',
-										 'crs_codes-everything.csv' : 'train' }
-
 class HypercatBuilder():
 	
 	def __init__(self, input_file, output_dir, base_url):
@@ -163,9 +158,9 @@ class HypercatBuilder():
 
 		# load csv file
 		with open(file_to_parse, 'rb') as csvfile:
-			dbreader = csv.reader(csvfile, delimiter=';', quotechar='"')
-			next(dbreader, None) 
-			for i, row in enumerate(dbreader):
+			reader = csv.reader(csvfile, delimiter=';', quotechar='"')
+			next(reader, None) 
+			for i, row in enumerate(reader):
 
 				# continue to nth line if iterating
 				if i <= MAX_CATALOGUE_LENGTH * (index-1):
@@ -310,7 +305,7 @@ class HypercatBuilder():
 				r_live = hypercat.Resource('{:s}: Departures Catalogue - {:s}'.format(current_folder.title(), f.title()), 'application/vnd.hypercat.catalogue+json')
 				index.addItem(r_live, '{:s}/cat/{:s}/{:s}'.format(self.base_url, current_folder, f))
 
-		self.save_index(index.prettyprint())
+		return index.prettyprint()
 
 	def save_index(self, catalogue):
 		with open('{:s}/cat.json'.format(self.output_dir), "w") as f:
@@ -339,7 +334,8 @@ class HypercatBuilder():
 			else:
 				return
 
-		self.build_index()
+		cat = self.build_index()
+		self.save_index(cat)
 
 # natural_sort function below taken from
 # http://stackoverflow.com/questions/4836710/does-python-have-a-built-in-function-for-string-natural-sort
@@ -359,6 +355,7 @@ def main(arguments):
 
 	hypercat = HypercatBuilder(arguments['--input'], arguments['--output'], base_url)
 	hypercat.generate_hypercat_file()
+
 
 if __name__ == '__main__':
 	arguments = docopt(__doc__, version='Hypercat Builder 1.0')
