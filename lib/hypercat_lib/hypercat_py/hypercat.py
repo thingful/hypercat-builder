@@ -77,10 +77,10 @@ REL = "rel"
 VAL = "val"
 
 # Catalogue structure
-CATALOGUE_METADATA  = "item-metadata"    # Name of the array of metadata about the catalogue itself
+CATALOGUE_METADATA  = "catalogue-metadata"    # Name of the array of metadata about the catalogue itself
 ITEMS = "items"
 HREF = "href"
-ITEM_METADATA = "i-object-metadata" # Name of the array of metadata about each item in the catalogue
+ITEM_METADATA = "item-metadata" # Name of the array of metadata about each item in the catalogue
 
 # Mandatory relations & types
 ISCONTENTTYPE_RELATION = "urn:X-hypercat:rels:isContentType"  # Mandatory for catalogues, but not resources
@@ -229,11 +229,6 @@ class Resource(Base):
         self.metadata = [
             {REL:ISCONTENTTYPE_RELATION,VAL:contentType},
             {REL:DESCRIPTION_RELATION,VAL:description}]
-
-
-    def addItemMetadata(self, rel, val):
-        """Add metatadata to resource"""
-        self.metadata.append({REL:rel,VAL:val})
 
     def asJSON(self, asChild=True):
         # Resources can only be children
