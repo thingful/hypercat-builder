@@ -34,7 +34,7 @@ this flag generates links to the main TransportAPI website.
 ----------------------------------------------------------------
 
 Usage:
-  hypercat_builder.py [--input=<path>] [--output=<directory>] [--fcc]
+  hypercat_builder.py [--input=<path>] [--output=<directory>] [--fcc] [--legacy]
   hypercat_builder.py -h | --help
   hypercat_builder.py --version
 
@@ -46,6 +46,9 @@ Options:
   --output=<directory>      Directory the output JSON should be written to
                             [default: ./output].
   --fcc                     Future City Catapult flag.
+  --legacy                  use transportapi.com/v3/uk/bus/... url for ferry, trams and
+                            buses. By default each type has its own base url 
+                            (ie transportapi.com/v3/uk/tram/... for trams)
 
 """
 
@@ -172,7 +175,7 @@ class HypercatBuilder():
 					if i <= MAX_CATALOGUE_LENGTH * (index-1):
 						continue
 
-					# breake if catalogue limit has been reached
+					# break if catalogue limit has been reached
 					if i > MAX_CATALOGUE_LENGTH * index:
 						loop_again = True
 						break
@@ -186,11 +189,17 @@ class HypercatBuilder():
 						timetable_h.addItem(timetable_r, '{:s}/v3/uk/train/station/{:s}/timetable.json'.format(self.base_url, row[5]))
 
 					else:
+						# check for legacy flag
+						if arguments['--legacy']:
+							c_type = 'bus'
+						else :
+							c_type = catalogue_type
+
 						live_r = self.build_hcitem_stops(row, catalogue_type, 'live')
-						live_h.addItem(live_r, '{:s}/v3/uk/{:s}/stop/{:s}/live.json'.format(self.base_url, catalogue_type, row[1]))
+						live_h.addItem(live_r, '{:s}/v3/uk/{:s}/stop/{:s}/live.json'.format(self.base_url, c_type, row[1]))
 
 						timetable_r = self.build_hcitem_stops(row, catalogue_type, 'timetable')
-						timetable_h.addItem(timetable_r, '{:s}/v3/uk/{:s}/stop/{:s}/timetable.json'.format(self.base_url, catalogue_type, row[1]))
+						timetable_h.addItem(timetable_r, '{:s}/v3/uk/{:s}/stop/{:s}/timetable.json'.format(self.base_url, c_type, row[1]))
 		except:
 			print("ERROR: something went wrong when opening a file.")
 			return
@@ -335,7 +344,7 @@ class HypercatBuilder():
 
 				path_to_file = os.path.join(self.input_path, current_file)
 
-				if os.path.isfile(path_to_file) and self.validate_input_file_and_get_type(path_to_file): # file is valid
+				if not current_file.startswith('.') and os.path.isfile(path_to_file) and self.validate_input_file_and_get_type(path_to_file): # file is valid
 					self.current_dataset = current_file
 					self.current_datatype = self.validate_input_file_and_get_type(path_to_file)
 					h = self.parse_csv(os.path.join(self.input_path, current_file), self.current_datatype, 1)
