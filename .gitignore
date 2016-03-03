@@ -6,3 +6,6 @@ __pycache__/
 
 # ignore the default output folder
 output/
+
+# ignore tests for now
+test/

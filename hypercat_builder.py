@@ -34,7 +34,7 @@ this flag generates links to the main TransportAPI website.
 ----------------------------------------------------------------
 
 Usage:
-  hypercat_builder.py [--input=<path>] [--output=<directory>] [--fcc]
+  hypercat_builder.py [--input=<path>] [--output=<directory>] [--fcc] [--legacy]
   hypercat_builder.py -h | --help
   hypercat_builder.py --version
 
@@ -46,11 +46,14 @@ Options:
   --output=<directory>      Directory the output JSON should be written to
                             [default: ./output].
   --fcc                     Future City Catapult flag.
+  --legacy                  use transportapi.com/v3/uk/bus/... url for ferry, trams and
+                            buses. By default each type has its own base url 
+                            (ie transportapi.com/v3/uk/tram/... for trams)
 
 """
 
-from lib.docopt import docopt
-import lib.hypercat_lib.hypercat_py.hypercat as hypercat
+from docopt import docopt
+from hypercat import hypercat
 import csv
 import os
 import sys
@@ -58,6 +61,7 @@ import errno
 import ntpath
 import datetime
 import re
+from glob import glob
 
 PROVIDER_NAME = "TransportAPI"
 
@@ -98,10 +102,12 @@ class HypercatBuilder():
 		r.addRelation('urn:X-{:s}:rels:hasATCOCode'.format(PROVIDER_NAME), csvRow[1])
 
 		# lat
-		r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#lat', str(lat) )
+		if lat != '':
+			r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#lat', str(lat) )
 
 		# lon
-		r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#long', str(lon))
+		if lon != '':
+			r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#long', str(lon))
 
 		# type
 		r.addRelation('urn:X-{:s}:rels:isNodeType'.format(PROVIDER_NAME), node_type)
@@ -119,10 +125,12 @@ class HypercatBuilder():
 		r = hypercat.Resource('{:s}: {:s} Departures'.format(csvRow[3], data_currency.title()),  'application/json')
 
 		# lat
-		r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#lat', csvRow[7])
+		if csvRow[7] != '':
+			r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#lat', csvRow[7])
 
 		# lon
-		r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#long', csvRow[8])
+		if csvRow[8] != '':
+			r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#long', csvRow[8])
 
 		# CRS
 		r.addRelation('urn:X-{:s}:rels:hasCRSCode'.format(PROVIDER_NAME), csvRow[5])
@@ -157,34 +165,44 @@ class HypercatBuilder():
 		loop_again = False
 
 		# load csv file
-		with open(file_to_parse, 'rb') as csvfile:
-			reader = csv.reader(csvfile, delimiter=';', quotechar='"')
-			next(reader, None) 
-			for i, row in enumerate(reader):
+		try:
+			with open(file_to_parse, 'rb') as csvfile:
+				reader = csv.reader(csvfile, delimiter=';', quotechar='"')
+				next(reader, None) 
+				for i, row in enumerate(reader):
 
-				# continue to nth line if iterating
-				if i <= MAX_CATALOGUE_LENGTH * (index-1):
-					continue
+					# continue to nth line if iterating
+					if i <= MAX_CATALOGUE_LENGTH * (index-1):
+						continue
 
-				# breake if catalogue limit has been reached
-				if i > MAX_CATALOGUE_LENGTH * index:
-					loop_again = True
-					break
+					# break if catalogue limit has been reached
+					if i > MAX_CATALOGUE_LENGTH * index:
+						loop_again = True
+						break
 
-				if catalogue_type == 'train':
-					
-					live_r = self.build_hcitem_station(row, 'live')
-					live_h.addItem(live_r, '{:s}v3/uk/train/station/{:s}/live.json'.format(self.base_url, row[5]))
+					if catalogue_type == 'train':
+						
+						live_r = self.build_hcitem_station(row, 'live')
+						live_h.addItem(live_r, '{:s}v3/uk/train/station/{:s}/live.json'.format(self.base_url, row[5]))
 
-					timetable_r = self.build_hcitem_station(row, 'timetable')
-					timetable_h.addItem(timetable_r, '{:s}/v3/uk/train/station/{:s}/timetable.json'.format(self.base_url, row[5]))
+						timetable_r = self.build_hcitem_station(row, 'timetable')
+						timetable_h.addItem(timetable_r, '{:s}/v3/uk/train/station/{:s}/timetable.json'.format(self.base_url, row[5]))
 
-				else:
-					live_r = self.build_hcitem_stops(row, catalogue_type, 'live')
-					live_h.addItem(live_r, '{:s}/v3/uk/{:s}/stop/{:s}/live.json'.format(self.base_url, catalogue_type, row[1]))
+					else:
+						# check for legacy flag
+						if arguments['--legacy']:
+							c_type = 'bus'
+						else :
+							c_type = catalogue_type
 
-					timetable_r = self.build_hcitem_stops(row, catalogue_type, 'timetable')
-					timetable_h.addItem(timetable_r, '{:s}/v3/uk/{:s}/stop/{:s}/timetable.json'.format(self.base_url, catalogue_type, row[1]))
+						live_r = self.build_hcitem_stops(row, catalogue_type, 'live')
+						live_h.addItem(live_r, '{:s}/v3/uk/{:s}/stop/{:s}/live.json'.format(self.base_url, c_type, row[1]))
+
+						timetable_r = self.build_hcitem_stops(row, catalogue_type, 'timetable')
+						timetable_h.addItem(timetable_r, '{:s}/v3/uk/{:s}/stop/{:s}/timetable.json'.format(self.base_url, c_type, row[1]))
+		except:
+			print("ERROR: something went wrong when opening a file.")
+			return
 
 		self.build_live_catalogue(live_h, catalogue_type, index, loop_again)
 		self.build_timetable_catalogue(timetable_h, catalogue_type, index, loop_again)
@@ -198,9 +216,9 @@ class HypercatBuilder():
 		output_base_dir= self.sanitize_output(self.output_dir)
 
 		if index > 1 or add_file_count == True :
-			file_name = '{:s}/{:s}/live-{:d}.json'.format(output_base_dir, cat_type, index)
+			file_name = '{:s}/cat/{:s}/live-{:d}.json'.format(output_base_dir, cat_type, index)
 		else :
-			file_name = '{:s}/{:s}/live.json'.format(output_base_dir, cat_type)
+			file_name = '{:s}/cat/{:s}/live.json'.format(output_base_dir, cat_type)
 		
 		if not os.path.exists(os.path.dirname(file_name)):
 			try:
@@ -222,9 +240,9 @@ class HypercatBuilder():
 		output_base_dir= self.sanitize_output(self.output_dir)
 
 		if index > 1 or add_file_count == True:
-			file_name = '{:s}/{:s}/timetable-{}.json'.format(output_base_dir, cat_type, index)
+			file_name = '{:s}/cat/{:s}/timetable-{}.json'.format(output_base_dir, cat_type, index)
 		else :
-			file_name = '{:s}/{:s}/timetable.json'.format(output_base_dir, cat_type)
+			file_name = '{:s}/cat/{:s}/timetable.json'.format(output_base_dir, cat_type)
 		
 		if not os.path.exists(os.path.dirname(file_name)):
 			try:
@@ -255,7 +273,10 @@ class HypercatBuilder():
 		# we validate against the file name only
 		self.file_name = ntpath.basename(input_file)
 
-		if os.path.exists(input_file) == False: # the input path does not exist
+		#print os.path.normpath(os.path.join(os.path.dirname(__file__), input_file))
+		path = os.path.abspath(os.path.join(os.path.dirname(__file__), input_file))
+
+		if os.path.exists(path) == False: # the input path does not exist
 			print('\nWARNING: please ensure the input path is correct.\nUse <hypercat_builder.py --help> for help.\n')
 			return False
 
@@ -292,9 +313,11 @@ class HypercatBuilder():
 		index.addRelation('urn:X-hypercat:rels:hasHomePage', PROVIDER_WEBSITE)
 		index.addRelation('urn:X-transportapi:rels:createdAt', datetime.datetime.utcnow().isoformat())
 
-		for current_folder in os.listdir(self.output_dir):
+		cat_dir = os.path.join(self.output_dir, 'cat/')
+
+		for current_folder in os.listdir(cat_dir):
 			try:
-				available_files = os.listdir(os.path.join(self.output_dir, current_folder))
+				available_files = os.listdir(os.path.join(cat_dir, current_folder))
 			except OSError:
 				continue
 
@@ -302,8 +325,8 @@ class HypercatBuilder():
 				# remove extension from file name 
 				f = os.path.splitext(current_file)[0]
 
-				r_live = hypercat.Resource('{:s}: Departures Catalogue - {:s}'.format(current_folder.title(), f.title()), 'application/vnd.hypercat.catalogue+json')
-				index.addItem(r_live, '{:s}/cat/{:s}/{:s}'.format(self.base_url, current_folder, f))
+				subcat = hypercat.Resource('{:s}: Departures Catalogue - {:s}'.format(current_folder.title(), f.title()), 'application/vnd.hypercat.catalogue+json')
+				index.addItem(subcat, '{:s}/cat/{:s}/{:s}'.format(self.base_url, current_folder, f))
 
 		return index.prettyprint()
 
@@ -318,10 +341,12 @@ class HypercatBuilder():
 		# parse input
 		if os.path.isdir(self.input_path) and self.validate_input_folder(): # input is a directory
 			for current_file in os.listdir(self.input_path):
+
 				path_to_file = os.path.join(self.input_path, current_file)
-				if os.path.isfile(path_to_file) and self.validate_input_file_and_get_type(path_to_file):
+
+				if not current_file.startswith('.') and os.path.isfile(path_to_file) and self.validate_input_file_and_get_type(path_to_file): # file is valid
 					self.current_dataset = current_file
-					self.current_datatype = self.validate_input_file_and_get_type(current_file)
+					self.current_datatype = self.validate_input_file_and_get_type(path_to_file)
 					h = self.parse_csv(os.path.join(self.input_path, current_file), self.current_datatype, 1)
 				else:
 					continue
