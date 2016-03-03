@@ -99,10 +99,12 @@ class HypercatBuilder():
 		r.addRelation('urn:X-{:s}:rels:hasATCOCode'.format(PROVIDER_NAME), csvRow[1])
 
 		# lat
-		r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#lat', str(lat) )
+		if lat != '':
+			r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#lat', str(lat) )
 
 		# lon
-		r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#long', str(lon))
+		if lon != '':
+			r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#long', str(lon))
 
 		# type
 		r.addRelation('urn:X-{:s}:rels:isNodeType'.format(PROVIDER_NAME), node_type)
@@ -120,10 +122,12 @@ class HypercatBuilder():
 		r = hypercat.Resource('{:s}: {:s} Departures'.format(csvRow[3], data_currency.title()),  'application/json')
 
 		# lat
-		r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#lat', csvRow[7])
+		if csvRow[7] != '':
+			r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#lat', csvRow[7])
 
 		# lon
-		r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#long', csvRow[8])
+		if csvRow[8] != '':
+			r.addRelation('http://www.w3.org/2003/01/geo/wgs84_pos#long', csvRow[8])
 
 		# CRS
 		r.addRelation('urn:X-{:s}:rels:hasCRSCode'.format(PROVIDER_NAME), csvRow[5])
