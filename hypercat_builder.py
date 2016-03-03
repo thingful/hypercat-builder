@@ -50,7 +50,8 @@ Options:
 """
 
 from lib.docopt import docopt
-import lib.hypercat_lib.hypercat_py.hypercat as hypercat
+# import lib.hypercat_lib.hypercat_py.hypercat as hypercat
+import lib.hypercat_py.hypercat.hypercat as hypercat
 import csv
 import os
 import sys
@@ -158,34 +159,38 @@ class HypercatBuilder():
 		loop_again = False
 
 		# load csv file
-		with open(file_to_parse, 'rb') as csvfile:
-			reader = csv.reader(csvfile, delimiter=';', quotechar='"')
-			next(reader, None) 
-			for i, row in enumerate(reader):
+		try:
+			with open(file_to_parse, 'rb') as csvfile:
+				reader = csv.reader(csvfile, delimiter=';', quotechar='"')
+				next(reader, None) 
+				for i, row in enumerate(reader):
 
-				# continue to nth line if iterating
-				if i <= MAX_CATALOGUE_LENGTH * (index-1):
-					continue
+					# continue to nth line if iterating
+					if i <= MAX_CATALOGUE_LENGTH * (index-1):
+						continue
 
-				# breake if catalogue limit has been reached
-				if i > MAX_CATALOGUE_LENGTH * index:
-					loop_again = True
-					break
+					# breake if catalogue limit has been reached
+					if i > MAX_CATALOGUE_LENGTH * index:
+						loop_again = True
+						break
 
-				if catalogue_type == 'train':
-					
-					live_r = self.build_hcitem_station(row, 'live')
-					live_h.addItem(live_r, '{:s}v3/uk/train/station/{:s}/live.json'.format(self.base_url, row[5]))
+					if catalogue_type == 'train':
+						
+						live_r = self.build_hcitem_station(row, 'live')
+						live_h.addItem(live_r, '{:s}v3/uk/train/station/{:s}/live.json'.format(self.base_url, row[5]))
 
-					timetable_r = self.build_hcitem_station(row, 'timetable')
-					timetable_h.addItem(timetable_r, '{:s}/v3/uk/train/station/{:s}/timetable.json'.format(self.base_url, row[5]))
+						timetable_r = self.build_hcitem_station(row, 'timetable')
+						timetable_h.addItem(timetable_r, '{:s}/v3/uk/train/station/{:s}/timetable.json'.format(self.base_url, row[5]))
 
-				else:
-					live_r = self.build_hcitem_stops(row, catalogue_type, 'live')
-					live_h.addItem(live_r, '{:s}/v3/uk/{:s}/stop/{:s}/live.json'.format(self.base_url, catalogue_type, row[1]))
+					else:
+						live_r = self.build_hcitem_stops(row, catalogue_type, 'live')
+						live_h.addItem(live_r, '{:s}/v3/uk/{:s}/stop/{:s}/live.json'.format(self.base_url, catalogue_type, row[1]))
 
-					timetable_r = self.build_hcitem_stops(row, catalogue_type, 'timetable')
-					timetable_h.addItem(timetable_r, '{:s}/v3/uk/{:s}/stop/{:s}/timetable.json'.format(self.base_url, catalogue_type, row[1]))
+						timetable_r = self.build_hcitem_stops(row, catalogue_type, 'timetable')
+						timetable_h.addItem(timetable_r, '{:s}/v3/uk/{:s}/stop/{:s}/timetable.json'.format(self.base_url, catalogue_type, row[1]))
+		except:
+			print("ERROR: something went wrong when opening a file.")
+			return
 
 		self.build_live_catalogue(live_h, catalogue_type, index, loop_again)
 		self.build_timetable_catalogue(timetable_h, catalogue_type, index, loop_again)
@@ -256,7 +261,10 @@ class HypercatBuilder():
 		# we validate against the file name only
 		self.file_name = ntpath.basename(input_file)
 
-		if os.path.exists(input_file) == False: # the input path does not exist
+		#print os.path.normpath(os.path.join(os.path.dirname(__file__), input_file))
+		path = os.path.abspath(os.path.join(os.path.dirname(__file__), input_file))
+
+		if os.path.exists(path) == False: # the input path does not exist
 			print('\nWARNING: please ensure the input path is correct.\nUse <hypercat_builder.py --help> for help.\n')
 			return False
 
@@ -319,10 +327,12 @@ class HypercatBuilder():
 		# parse input
 		if os.path.isdir(self.input_path) and self.validate_input_folder(): # input is a directory
 			for current_file in os.listdir(self.input_path):
+
 				path_to_file = os.path.join(self.input_path, current_file)
-				if os.path.isfile(path_to_file) and self.validate_input_file_and_get_type(path_to_file):
+
+				if os.path.isfile(path_to_file) and self.validate_input_file_and_get_type(path_to_file): # file is valid
 					self.current_dataset = current_file
-					self.current_datatype = self.validate_input_file_and_get_type(current_file)
+					self.current_datatype = self.validate_input_file_and_get_type(path_to_file)
 					h = self.parse_csv(os.path.join(self.input_path, current_file), self.current_datatype, 1)
 				else:
 					continue
