@@ -58,6 +58,7 @@ import errno
 import ntpath
 import datetime
 import re
+from glob import glob
 
 PROVIDER_NAME = "TransportAPI"
 
@@ -302,8 +303,8 @@ class HypercatBuilder():
 				# remove extension from file name 
 				f = os.path.splitext(current_file)[0]
 
-				r_live = hypercat.Resource('{:s}: Departures Catalogue - {:s}'.format(current_folder.title(), f.title()), 'application/vnd.hypercat.catalogue+json')
-				index.addItem(r_live, '{:s}/cat/{:s}/{:s}'.format(self.base_url, current_folder, f))
+				subcat = hypercat.Resource('{:s}: Departures Catalogue - {:s}'.format(current_folder.title(), f.title()), 'application/vnd.hypercat.catalogue+json')
+				index.addItem(subcat, '{:s}/cat/{:s}/{:s}'.format(self.base_url, current_folder, f))
 
 		return index.prettyprint()
 
