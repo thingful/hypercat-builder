@@ -49,9 +49,8 @@ Options:
 
 """
 
-from lib.docopt import docopt
-# import lib.hypercat_lib.hypercat_py.hypercat as hypercat
-import lib.hypercat_py.hypercat.hypercat as hypercat
+from docopt import docopt
+from hypercat import hypercat
 import csv
 import os
 import sys
