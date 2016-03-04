@@ -307,11 +307,11 @@ class HypercatBuilder():
 
 		return otp_path 
 
-	def build_index(self):
+	def build_index(self, timestamp):
 		# create a new hypercat catalogue
 		index = hypercat.Hypercat('{:s} Catalogue'.format(PROVIDER_NAME))
 		index.addRelation('urn:X-hypercat:rels:hasHomePage', PROVIDER_WEBSITE)
-		index.addRelation('urn:X-transportapi:rels:createdAt', datetime.datetime.utcnow().isoformat())
+		index.addRelation('urn:X-transportapi:rels:createdAt', timestamp)
 
 		cat_dir = os.path.join(self.output_dir, 'cat/')
 
@@ -359,7 +359,7 @@ class HypercatBuilder():
 			else:
 				return
 
-		cat = self.build_index()
+		cat = self.build_index(datetime.datetime.utcnow().isoformat())
 		self.save_index(cat)
 
 # natural_sort function below taken from
