@@ -216,9 +216,9 @@ class HypercatBuilder():
 		output_base_dir= self.sanitize_output(self.output_dir)
 
 		if index > 1 or add_file_count == True :
-			file_name = '{:s}/cat/{:s}/live-{:d}.json'.format(output_base_dir, cat_type, index)
+			file_name = '{:s}/{:s}/live-{:d}.json'.format(output_base_dir, cat_type, index)
 		else :
-			file_name = '{:s}/cat/{:s}/live.json'.format(output_base_dir, cat_type)
+			file_name = '{:s}/{:s}/live.json'.format(output_base_dir, cat_type)
 		
 		if not os.path.exists(os.path.dirname(file_name)):
 			try:
@@ -240,9 +240,9 @@ class HypercatBuilder():
 		output_base_dir= self.sanitize_output(self.output_dir)
 
 		if index > 1 or add_file_count == True:
-			file_name = '{:s}/cat/{:s}/timetable-{}.json'.format(output_base_dir, cat_type, index)
+			file_name = '{:s}/{:s}/timetable-{}.json'.format(output_base_dir, cat_type, index)
 		else :
-			file_name = '{:s}/cat/{:s}/timetable.json'.format(output_base_dir, cat_type)
+			file_name = '{:s}/{:s}/timetable.json'.format(output_base_dir, cat_type)
 		
 		if not os.path.exists(os.path.dirname(file_name)):
 			try:
@@ -313,11 +313,9 @@ class HypercatBuilder():
 		index.addRelation('urn:X-hypercat:rels:hasHomePage', PROVIDER_WEBSITE)
 		index.addRelation('urn:X-transportapi:rels:createdAt', timestamp)
 
-		cat_dir = os.path.join(self.output_dir, 'cat/')
-
-		for current_folder in os.listdir(cat_dir):
+		for current_folder in os.listdir(self.output_dir):
 			try:
-				available_files = os.listdir(os.path.join(cat_dir, current_folder))
+				available_files = os.listdir(os.path.join(self.output_dir, current_folder))
 			except OSError:
 				continue
 
