@@ -1,1 +1,18 @@
+# general things to ignore in python
+*.py[cod]
+__pycache__/
+*.so
+*~
+
+# ignore the default output folder
 output/
+
+# ingnore big input file
+data/atcocodes-bus.csv
+
+# ignore tests for now
+test/
+
+# ignore distribution
+dist/
+HypercatBuilder.egg-info/
