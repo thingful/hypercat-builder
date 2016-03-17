@@ -1,0 +1,77 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""Hypercat Builder
+----------------------------------------------------------------
+hypercat_builder.py is a simple tool for building HyperCat 2 compatible
+catalogues for the TransportAPI. It generates static HyperCat catalogues
+generated from a CSV dump of either bus stop, train station, or ferry port data
+pulled from the TransportAPI's database. These catalogues can then be hosted as
+simple static files via the main TransportAPI's webserver.
+----------------------------------------------------------------
+Input files within that folder should be named as follows:
+  atcocodes-bus.csv
+  atcocodes-ferry.csv
+  atcocodes-tram.csv
+  crs_codes-everything.csv
+
+The script will then output the following JSON catalogues to the output folder:
+  cat.json
+  bus/live-1.json
+  bus/timetabled-1.json
+  tram/live.json
+  tram/timetabled.json
+  ferry/live.json
+  ferry/timetabled.json
+  train/live.json
+  train/timetabled.json
+
+The top level cat.json contains the entry point to the catalogue, which must be
+a HyperCat catalogue containing references to the individual sub-catalogues.
+
+The script also has an additional flag called --fcc which causes it to output
+API links to the Future Cities Catapult version of the TransportAPI. Omitting
+this flag generates links to the main TransportAPI website.
+----------------------------------------------------------------
+
+Usage:
+  hypercat_builder.py --input=<path> [--output=<directory>] [--fcc] [--legacy]
+  hypercat_builder.py -h | --help
+  hypercat_builder.py --version
+
+Options:
+  -h, --help                Show this screen.
+  --version                 Show version.
+  -i --input=<path>         Folder containing the input CSV files for processing.
+                            It can be a folder or an individual file.
+  -o --output=<directory>   Directory the output JSON should be written to
+                            [default: ./output].
+  --fcc                     Enable Future City Catapult API links.
+  --legacy                  Use transportapi.com/v3/uk/bus/... url for ferry, trams and
+                            buses. By default each type has its own base url
+                            (ie transportapi.com/v3/uk/tram/... for trams)
+
+"""
+
+from docopt import docopt
+import pkg_resources  # part of setuptools
+from hypercat_builder.hypercat_builder import HypercatBuilder
+
+version = pkg_resources.require("HypercatBuilder")[0].version
+
+def main(arguments):
+  """Main is our entry point that instantiates a new HypercatBuilder instance
+  and sets it running."""
+
+  if arguments['--fcc']:
+    base_url = 'http://fcc.transportapi.com'
+  else:
+    base_url = 'http://transportapi.com'
+
+  hypercat = HypercatBuilder(arguments['--input'], arguments['--output'], base_url)
+  hypercat.generate_hypercat()
+
+if __name__ == '__main__':
+  arguments = docopt(__doc__, version='Hypercat Builder {:s}'.format(version))
+
+  # we will never call this unless arguments parse successfully
+  main(arguments)
