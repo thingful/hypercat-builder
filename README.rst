@@ -7,7 +7,6 @@ generated from a CSV dump of bus/tram stop, train station, or ferry port data
 pulled from the TransportAPI's database. These catalogues can then be hosted as
 simple static files via the main TransportAPI's webserver.
 
-
 Usage
 -----
 
@@ -62,10 +61,7 @@ If omitted catalogue links will point to the main TransportAPI website.
 use transportapi.com/v3/uk/bus/... url for ferry, trams and buses.
 By default each type has its own base url (ie transportapi.com/v3/uk/tram/... for trams)
 
+Copyright
+---------
 
-## Version
-1.0
-
-
-## Copyright
-Thingful Ltd.
+Copyright © Thingful Ltd 2016.
