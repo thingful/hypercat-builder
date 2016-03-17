@@ -1,1 +1,4 @@
 output/
+
+HypercatBuilder.egg-info/
+dist/
