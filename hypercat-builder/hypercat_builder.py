@@ -326,7 +326,7 @@ class HypercatBuilder():
 				f = os.path.splitext(current_file)[0]
 
 				subcat = hypercat.Resource('{:s}: Departures Catalogue - {:s}'.format(current_folder.title(), f.title()), 'application/vnd.hypercat.catalogue+json')
-				index.addItem(subcat, '{:s}/cat/{:s}/{:s}'.format(self.base_url, current_folder, f))
+				index.addItem(subcat, '{:s}/cat/{:s}/{:s}.json'.format(self.base_url, current_folder, f))
 
 		return index.prettyprint()
 
