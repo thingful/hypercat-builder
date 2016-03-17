@@ -12,3 +12,7 @@ data/atcocodes-bus.csv
 
 # ignore tests for now
 test/
+
+# ignore distribution
+dist/
+HypercatBuilder.egg-info/
