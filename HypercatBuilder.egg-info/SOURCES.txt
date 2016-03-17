@@ -1,0 +1,10 @@
+MANIFEST.in
+README.txt
+setup.py
+HypercatBuilder.egg-info/PKG-INFO
+HypercatBuilder.egg-info/SOURCES.txt
+HypercatBuilder.egg-info/dependency_links.txt
+HypercatBuilder.egg-info/requires.txt
+HypercatBuilder.egg-info/top_level.txt
+hypercat-builder/__init__.py
+hypercat-builder/hypercat_builder.py
