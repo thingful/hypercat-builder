@@ -8,7 +8,7 @@ from hypercat_builder.hypercat_builder import HypercatBuilder
 from hypercat_builder.hypercat_builder import natural_sort
 
 def test_get_catalogue_type():
-  hc = HypercatBuilder('input_dir', 'output_dir', 'http://transportapi.com')
+  hc = HypercatBuilder('input_dir', 'output_dir', 'http://transportapi.com', None)
   test_train = hc.get_catalogue_type('atcocodes_everything')
   test_bus = hc.get_catalogue_type('atcocodes-buses')
   test_ferry = hc.get_catalogue_type('atcocodes-all-ferries')
@@ -23,7 +23,7 @@ def test_get_catalogue_type():
   assert_equal(test_err, False)
 
 def test_build_hcitem_stops():
-  hc = HypercatBuilder('input_dir', 'output_dir', 'http://transportapi.com')
+  hc = HypercatBuilder('input_dir', 'output_dir', 'http://transportapi.com', None)
 
   with open('tests/data/test-ferry.csv') as data:
     reader = csv.reader(data, delimiter=';', quotechar='"')
@@ -42,7 +42,7 @@ def test_build_hcitem_stops():
   assert_equal(r.__dict__, expected.__dict__)
 
 def test_build_hcitem_station():
-  hc = HypercatBuilder('input_dir', 'output_dir', 'http://transportapi.com')
+  hc = HypercatBuilder('input_dir', 'output_dir', 'http://transportapi.com', None)
 
   with open('tests/data/test-station.csv') as data:
     reader = csv.reader(data, delimiter=';', quotechar='"')
@@ -71,7 +71,7 @@ def side_effect(arg):
 @mock.patch('hypercat_builder.hypercat_builder.os.path')
 def test_validate_input(mock_path):
 
-  hc = HypercatBuilder('input_dir', 'output_dir', 'http://transportapi.com')
+  hc = HypercatBuilder('input_dir', 'output_dir', 'http://transportapi.com', None)
 
   # set up mock 1
   mock_path.exists.return_value = False
@@ -90,7 +90,7 @@ def test_validate_input(mock_path):
 def test_index(mock_listdir):
   mock_listdir.side_effect = [['ferry', 'train'], ['live', 'timetable'], ['live', 'timetable']]
 
-  hc = HypercatBuilder('input_dir', 'output_dir', 'http://transportapi.com')
+  hc = HypercatBuilder('input_dir', 'output_dir', 'http://transportapi.com', None)
 
   cat = hc.build_index('2016-01-01')
 
