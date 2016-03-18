@@ -67,7 +67,7 @@ def main(arguments):
   else:
     base_url = 'http://transportapi.com'
 
-  hypercat = HypercatBuilder(arguments['--input'], arguments['--output'], base_url)
+  hypercat = HypercatBuilder(arguments['--input'], arguments['--output'], base_url, arguments['--legacy'])
   hypercat.generate_hypercat()
 
 if __name__ == '__main__':

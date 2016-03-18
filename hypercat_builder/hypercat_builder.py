@@ -15,10 +15,11 @@ PROVIDER_WEBSITE = "http://www.transportapi.com/"
 MAX_CATALOGUE_LENGTH = 10000
 
 class HypercatBuilder():
-  def __init__(self, input_path, output_dir, base_url):
+  def __init__(self, input_path, output_dir, base_url, legacy):
     self.input_path = input_path
     self.output_dir = output_dir
     self.base_url = base_url
+    self.legacy = legacy
     self.file_name = '' # the name of the file currently being processed
     self.current_dataset = ''
     self.current_datatype = ''
@@ -134,9 +135,9 @@ class HypercatBuilder():
 
           else:
             # check for legacy flag
-            if arguments['--legacy']:
+            if self.legacy:
               c_type = 'bus'
-            else :
+            else:
               c_type = catalogue_type
 
             live_r = self.build_hcitem_stops(row, catalogue_type, 'live')
@@ -144,8 +145,10 @@ class HypercatBuilder():
 
             timetable_r = self.build_hcitem_stops(row, catalogue_type, 'timetable')
             timetable_h.addItem(timetable_r, '{:s}/v3/uk/{:s}/stop/{:s}/timetable.json'.format(self.base_url, c_type, row[1]))
+    except IOError as e:
+      print("IOERROR: error reading file: {0} - {1}", e.errno, e.strerror)
     except:
-      print("ERROR: something went wrong when opening a file.")
+      print("ERROR: something went wrong when opening a file.", sys.exc_info()[0])
       return
 
     self.build_live_catalogue(live_h, catalogue_type, index, loop_again)
