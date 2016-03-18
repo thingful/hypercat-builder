@@ -93,8 +93,8 @@ class HypercatBuilder():
 
   def parse_csv(self, file_to_parse, catalogue_type, index):
     """loops trough the CSV input file and returns a hypercat catalogue.
-    If the number of rows exceed the MAX_CATALOGUE_LENGTH multiple files
-    will be generated until the end of the file is reached"""
+    Returns True if the number of rows exceed the MAX_CATALOGUE_LENGTH
+    or false otherwise"""
 
     # create new hypercat catalogue for live items
     live_h = hypercat.Hypercat('{:s} - {:s} Live Catalogue'.format(PROVIDER_NAME, catalogue_type.title()))
@@ -154,9 +154,8 @@ class HypercatBuilder():
     self.build_live_catalogue(live_h, catalogue_type, index, loop_again)
     self.build_timetable_catalogue(timetable_h, catalogue_type, index, loop_again)
 
-    # need to loop again?
-    if loop_again:
-      self.parse_csv(file_to_parse, catalogue_type, index+1)
+    # return True if there are more rows to parse
+    return loop_again
 
   def build_live_catalogue(self, json_data, cat_type, index, add_file_count) :
     output_content = json_data.prettyprint()
@@ -289,17 +288,29 @@ class HypercatBuilder():
         path_to_file = os.path.join(self.input_path, current_file)
 
         if not current_file.startswith('.') and os.path.isfile(path_to_file) and self.validate_input_file_and_get_type(path_to_file): # file is valid
+          index = 1 # csv_parser loop counter
           self.current_dataset = current_file
           self.current_datatype = self.validate_input_file_and_get_type(path_to_file)
-          h = self.parse_csv(os.path.join(self.input_path, current_file), self.current_datatype, 1)
+          h = self.parse_csv(os.path.join(self.input_path, current_file), self.current_datatype, index)
+          
+          while h == True:
+            index = index+1
+            h = self.parse_csv(os.path.join(self.input_path, current_file), self.current_datatype, index)
+        
         else:
           continue
 
     else: # input is a file
       if self.validate_input_file_and_get_type(self.input_path):
+        index = 1 # csv_parser loop counter
         self.current_dataset = self.input_path
         self.current_datatype = self.validate_input_file_and_get_type(self.input_path)
-        h = self.parse_csv(self.input_path, self.current_datatype, 1)
+        h = self.parse_csv(self.input_path, self.current_datatype, index)
+
+        while h == True:
+          index = index+1
+          h = self.parse_csv(self.input_path, self.current_datatype, index)
+      
       else:
         return
 
