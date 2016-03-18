@@ -219,9 +219,7 @@ class HypercatBuilder():
     # we validate against the file name only
     self.file_name = ntpath.basename(input_file)
 
-    path = os.path.abspath(os.path.join(os.path.dirname(__file__), input_file))
-
-    if os.path.exists(path) == False: # the input path does not exist
+    if os.path.exists(input_file) == False: # the input path does not exist
       print('\nWARNING: please ensure the input path is correct.\nUse <hypercat_builder.py --help> for help.\n')
       return False
 
