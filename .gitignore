@@ -3,6 +3,7 @@
 __pycache__/
 *.so
 *~
+.eggs
 
 # ignore the default output folder
 output/
