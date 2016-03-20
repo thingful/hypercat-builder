@@ -68,7 +68,7 @@ def test_natural_sort():
 def side_effect(arg):
   return iter(values[arg])
 
-@mock.patch('hypercat_builder.hypercat_builder.os.path')
+@mock.patch('hypercat_builder.hypercat_builder.os.path.exists')
 def test_validate_input(mock_path):
 
   hc = HypercatBuilder('input_dir', 'output_dir', 'http://transportapi.com', None)
@@ -91,7 +91,6 @@ def test_index(mock_listdir):
   mock_listdir.side_effect = [['ferry', 'train'], ['live', 'timetable'], ['live', 'timetable']]
 
   hc = HypercatBuilder('input_dir', 'output_dir', 'http://transportapi.com', None)
-
   cat = hc.build_index('2016-01-01')
 
   expected = hypercat.Hypercat('TransportAPI Catalogue')
