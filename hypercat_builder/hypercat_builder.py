@@ -90,21 +90,41 @@ class HypercatBuilder():
 
     return r
 
+  def build_catalogue_header(self, catalogue_type, index): 
+    """Generates a live and timetable catalogue header.
+    If the current catalogue being genaret is of type 'bus' or the
+    catalogue index is greater than one the description value will  
+    include the catalogue index."""
+
+    if catalogue_type == "bus" or index > 1 :
+      live_h = hypercat.Hypercat('{:s} - {:s} Live Catalogue {:d}'.format(PROVIDER_NAME, catalogue_type.title(), index))
+      live_h.addRelation('urn:X-hypercat:rels:hasHomePage', PROVIDER_WEBSITE)
+      live_h.addRelation('urn:X-transportapi:rels:createdAt', datetime.datetime.utcnow().isoformat())
+
+      # create new hypercat catalogue for timetable items
+      timetable_h = hypercat.Hypercat('{:s} - {:s} Timetable Catalogue {:d}'.format(PROVIDER_NAME, catalogue_type.title(), index))
+      timetable_h.addRelation('urn:X-hypercat:rels:hasHomePage', PROVIDER_WEBSITE)
+      timetable_h.addRelation('urn:X-transportapi:rels:createdAt', datetime.datetime.utcnow().isoformat())
+    else :
+      live_h = hypercat.Hypercat('{:s} - {:s} Live Catalogue'.format(PROVIDER_NAME, catalogue_type.title()))
+      live_h.addRelation('urn:X-hypercat:rels:hasHomePage', PROVIDER_WEBSITE)
+      live_h.addRelation('urn:X-transportapi:rels:createdAt', datetime.datetime.utcnow().isoformat())
+
+      # create new hypercat catalogue for timetable items
+      timetable_h = hypercat.Hypercat('{:s} - {:s} Timetable Catalogue'.format(PROVIDER_NAME, catalogue_type.title()))
+      timetable_h.addRelation('urn:X-hypercat:rels:hasHomePage', PROVIDER_WEBSITE)
+      timetable_h.addRelation('urn:X-transportapi:rels:createdAt', datetime.datetime.utcnow().isoformat())
+
+    return live_h, timetable_h
+
   def parse_csv(self, file_to_parse, catalogue_type, index):
     """loops trough the CSV input file and returns a hypercat catalogue.
     Returns True if the number of rows exceed the MAX_CATALOGUE_LENGTH
     or false otherwise"""
 
     # create new hypercat catalogue for live items
-    live_h = hypercat.Hypercat('{:s} - {:s} Live Catalogue'.format(PROVIDER_NAME, catalogue_type.title()))
-    live_h.addRelation('urn:X-hypercat:rels:hasHomePage', PROVIDER_WEBSITE)
-    live_h.addRelation('urn:X-transportapi:rels:createdAt', datetime.datetime.utcnow().isoformat())
-
-    # create new hypercat catalogue for timetable items
-    timetable_h = hypercat.Hypercat('{:s} - {:s} Timetable Catalogue'.format(PROVIDER_NAME, catalogue_type.title()))
-    timetable_h.addRelation('urn:X-hypercat:rels:hasHomePage', PROVIDER_WEBSITE)
-    timetable_h.addRelation('urn:X-transportapi:rels:createdAt', datetime.datetime.utcnow().isoformat())
-
+    live_h, timetable_h = self.build_catalogue_header(catalogue_type, index)
+    
     # loop flag
     loop_again = False
 
@@ -274,9 +294,9 @@ class HypercatBuilder():
         cat_type = f.split("-")
 
         if len(cat_type) > 1:
-          subcat = hypercat.Resource('{:s} : {:s} {:s} Catalogue {:s}'.format(PROVIDER_NAME, cat_name, cat_type[0].title(), cat_type[1]), 'application/vnd.hypercat.catalogue+json')
+          subcat = hypercat.Resource('{:s} - {:s} {:s} Catalogue {:s}'.format(PROVIDER_NAME, cat_name, cat_type[0].title(), cat_type[1]), 'application/vnd.hypercat.catalogue+json')
         else:
-          subcat = hypercat.Resource('{:s} : {:s} {:s} Catalogue'.format(PROVIDER_NAME, cat_name, cat_type[0].title()), 'application/vnd.hypercat.catalogue+json')
+          subcat = hypercat.Resource('{:s} - {:s} {:s} Catalogue'.format(PROVIDER_NAME, cat_name, cat_type[0].title()), 'application/vnd.hypercat.catalogue+json')
 
         index.addItem(subcat, '{:s}/cat/{:s}/{:s}.json'.format(self.base_url, current_folder, f))
 
