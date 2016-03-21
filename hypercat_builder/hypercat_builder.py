@@ -3,7 +3,6 @@ import csv
 import os
 import sys
 import errno
-import ntpath
 import datetime
 import re
 from glob import glob
@@ -16,7 +15,7 @@ MAX_CATALOGUE_LENGTH = 10000
 
 class HypercatBuilder():
   def __init__(self, input_path, output_dir, base_url, legacy):
-    self.input_path = input_path
+    self.input_path = os.path.expandvars(os.path.expanduser(input_path))
     self.output_dir = output_dir
     self.base_url = base_url
     self.legacy = legacy
@@ -217,11 +216,9 @@ class HypercatBuilder():
 
     # this will ensure that if a path was used as input
     # we validate against the file name only
-    self.file_name = ntpath.basename(input_file)
+    self.file_name = os.path.basename(input_file)
 
-    path = os.path.abspath(os.path.join(os.path.dirname(__file__), input_file))
-
-    if os.path.exists(path) == False: # the input path does not exist
+    if os.path.exists(input_file) == False: # the input path does not exist
       print('\nWARNING: please ensure the input path is correct.\nUse <hypercat_builder.py --help> for help.\n')
       return False
 
@@ -292,11 +289,11 @@ class HypercatBuilder():
           self.current_dataset = current_file
           self.current_datatype = self.validate_input_file_and_get_type(path_to_file)
           h = self.parse_csv(os.path.join(self.input_path, current_file), self.current_datatype, index)
-          
+
           while h == True:
             index = index+1
             h = self.parse_csv(os.path.join(self.input_path, current_file), self.current_datatype, index)
-        
+
         else:
           continue
 
@@ -310,7 +307,7 @@ class HypercatBuilder():
         while h == True:
           index = index+1
           h = self.parse_csv(self.input_path, self.current_datatype, index)
-      
+
       else:
         return
 
