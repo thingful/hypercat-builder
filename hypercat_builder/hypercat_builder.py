@@ -92,8 +92,8 @@ class HypercatBuilder():
 
   def build_catalogue_header(self, catalogue_type, index): 
     """Generates a live and timetable catalogue header.
-    If the current catalogue being genaret is of type 'bus' or the
-    catalogue index is greater than one the description value will  
+    If the current catalogue being generated is of type 'bus' or the
+    catalogue index is greater than 1 the description value will  
     include the catalogue index."""
 
     if catalogue_type == "bus" or index > 1 :
