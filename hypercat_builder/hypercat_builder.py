@@ -265,7 +265,19 @@ class HypercatBuilder():
         # remove extension from file name
         f = os.path.splitext(current_file)[0]
 
-        subcat = hypercat.Resource('{:s}: Departures Catalogue - {:s}'.format(current_folder.title(), f.title()), 'application/vnd.hypercat.catalogue+json')
+
+
+        # catalogue name
+        cat_name = current_folder.title()
+
+        # catalogue type
+        cat_type = f.split("-")
+
+        if len(cat_type) > 1:
+          subcat = hypercat.Resource('{:s} : {:s} {:s} Catalogue {:s}'.format(PROVIDER_NAME, cat_name, cat_type[0].title(), cat_type[1]), 'application/vnd.hypercat.catalogue+json')
+        else:
+          subcat = hypercat.Resource('{:s} : {:s} {:s} Catalogue'.format(PROVIDER_NAME, cat_name, cat_type[0].title()), 'application/vnd.hypercat.catalogue+json')
+
         index.addItem(subcat, '{:s}/cat/{:s}/{:s}.json'.format(self.base_url, current_folder, f))
 
     return index.prettyprint()
