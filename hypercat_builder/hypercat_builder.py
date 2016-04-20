@@ -9,7 +9,7 @@ from glob import glob
 
 PROVIDER_NAME = "TransportAPI"
 
-PROVIDER_WEBSITE = "http://www.transportapi.com/"
+PROVIDER_WEBSITE = "http://www.transportapi.com/v3/"
 
 MAX_CATALOGUE_LENGTH = 10000
 
@@ -285,8 +285,6 @@ class HypercatBuilder():
         # remove extension from file name
         f = os.path.splitext(current_file)[0]
 
-
-
         # catalogue name
         cat_name = current_folder.title()
 
@@ -298,7 +296,7 @@ class HypercatBuilder():
         else:
           subcat = hypercat.Resource('{:s} - {:s} {:s} Catalogue'.format(PROVIDER_NAME, cat_name, cat_type[0].title()), 'application/vnd.hypercat.catalogue+json')
 
-        index.addItem(subcat, '{:s}/cat/{:s}/{:s}.json'.format(self.base_url, current_folder, f))
+        index.addItem(subcat, '{:s}/v3/cat/{:s}/{:s}.json'.format(self.base_url, current_folder, f))
 
     return index.prettyprint()
 
