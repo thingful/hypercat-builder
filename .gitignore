@@ -5,8 +5,9 @@ __pycache__/
 *~
 .eggs
 
-# ignore the default output folder
+# ignore the default input and output folder
 output/
+input/
 
 # ingnore big input file
 data/atcocodes-bus.csv
