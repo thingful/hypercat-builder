@@ -90,10 +90,10 @@ class HypercatBuilder():
 
     return r
 
-  def build_catalogue_header(self, catalogue_type, index): 
+  def build_catalogue_header(self, catalogue_type, index):
     """Generates a live and timetable catalogue header.
     If the current catalogue being generated is of type 'bus' or the
-    catalogue index is greater than 1 the description value will  
+    catalogue index is greater than 1 the description value will
     include the catalogue index."""
 
     if catalogue_type == "bus" or index > 1 :
@@ -124,7 +124,7 @@ class HypercatBuilder():
 
     # create new hypercat catalogue for live items
     live_h, timetable_h = self.build_catalogue_header(catalogue_type, index)
-    
+
     # loop flag
     loop_again = False
 
@@ -147,7 +147,7 @@ class HypercatBuilder():
           if catalogue_type == 'train':
 
             live_r = self.build_hcitem_station(row, 'live')
-            live_h.addItem(live_r, '{:s}v3/uk/train/station/{:s}/live.json'.format(self.base_url, row[5]))
+            live_h.addItem(live_r, '{:s}/v3/uk/train/station/{:s}/live.json'.format(self.base_url, row[5]))
 
             timetable_r = self.build_hcitem_station(row, 'timetable')
             timetable_h.addItem(timetable_r, '{:s}/v3/uk/train/station/{:s}/timetable.json'.format(self.base_url, row[5]))
